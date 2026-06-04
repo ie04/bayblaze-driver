@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      includeAssets: ["favicon-32x32.png", "apple-touch-icon.png"],
       manifest: {
         name: "BayBlaze Driver",
         short_name: "BB Driver",
@@ -23,9 +23,15 @@ export default defineConfig({
         scope: "/",
         icons: [
           {
-            src: "/favicon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
+            src: "/icons/bayblaze-driver-icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+          {
+            src: "/icons/bayblaze-driver-icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
             purpose: "any maskable",
           },
         ],

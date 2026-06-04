@@ -93,7 +93,7 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
   }
 
   return (
-    <div className="flex w-full flex-col justify-center rounded-[24px] border border-white/70 bg-white px-5 py-6 shadow-2xl shadow-black/20">
+    <div className="flex w-full flex-col justify-center rounded-[24px] border border-white/70 bg-white/90 px-5 py-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
       <div className="mb-7">
         <div className="grid size-14 place-items-center rounded-2xl bg-[var(--bayblaze-green)] text-white shadow-lg shadow-green-900/15">
           <ShieldCheck size={28} aria-hidden="true" />

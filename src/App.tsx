@@ -56,8 +56,19 @@ function App() {
     return <EnvironmentNotice />;
   }
 
+  const isLoginScreen = !authLoading && !authUser;
+  const shellClassName = isLoginScreen
+    ? "flex min-h-svh w-full flex-col bg-cover bg-center bg-no-repeat"
+    : "mx-auto flex min-h-svh w-full max-w-md flex-col bg-white shadow-[0_24px_80px_rgba(36,54,24,0.12)] md:my-6 md:min-h-[calc(100svh-3rem)] md:overflow-hidden md:rounded-[28px]";
+  const shellStyle = isLoginScreen
+    ? {
+        backgroundImage:
+          "linear-gradient(rgba(17, 19, 15, 0.18), rgba(17, 19, 15, 0.34)), url('/images/tampa-bay-area-1980-map.jpg')",
+      }
+    : undefined;
+
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col bg-white shadow-[0_24px_80px_rgba(36,54,24,0.12)] md:my-6 md:min-h-[calc(100svh-3rem)] md:overflow-hidden md:rounded-[28px]">
+    <main className={shellClassName} style={shellStyle}>
       <header className="border-b border-[var(--bayblaze-line)] bg-white/95 px-5 pb-4 pt-5 backdrop-blur">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
@@ -93,7 +104,11 @@ function App() {
         </div>
       </header>
 
-      <section className="flex flex-1 flex-col px-5 py-5">
+      <section
+        className={`flex flex-1 flex-col px-5 py-5 ${
+          isLoginScreen ? "mx-auto w-full max-w-md justify-center" : ""
+        }`}
+      >
         {authLoading || (authUser && profile === undefined) ? (
           <CenteredLoader label="Loading driver access" />
         ) : !authUser ? (

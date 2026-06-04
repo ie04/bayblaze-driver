@@ -95,6 +95,10 @@ Suggested collections:
 
 - The PWA can be deployed as a static Vite app to Firebase Hosting or another
   static host.
+- Firebase / Google Cloud project ID: `bayblaze-driver`.
+- Firebase project number / messaging sender ID: `251302296493`.
+- Firebase web app ID: `1:251302296493:web:4e60eec8a1562035e8ff24`.
+- Default Firebase Hosting site: `bayblaze-driver`.
 - Firebase Functions deploy alongside the app when email verification, Auth
   account creation, or other privileged server actions are needed.
 - Browser-exposed environment variables must use the `VITE_` prefix and must be

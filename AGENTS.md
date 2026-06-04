@@ -99,6 +99,11 @@ Suggested collections:
 - Firebase project number / messaging sender ID: `251302296493`.
 - Firebase web app ID: `1:251302296493:web:4e60eec8a1562035e8ff24`.
 - Default Firebase Hosting site: `bayblaze-driver`.
+- Firebase Email/Password Authentication is enabled.
+- Firestore `(default)` is enabled in location `nam5`; Firestore rules from
+  `firestore.rules` have been deployed.
+- Firebase Storage still needs to be confirmed/enabled before required profile
+  photo onboarding can complete in production.
 - Firebase Functions deploy alongside the app when email verification, Auth
   account creation, or other privileged server actions are needed.
 - Browser-exposed environment variables must use the `VITE_` prefix and must be

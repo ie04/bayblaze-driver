@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isDriver(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /driver_allowlist/{emailKey} {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
+
+    match /driver_profiles/{uid} {
+      allow read, create, update: if isDriver(uid);
+      allow delete: if false;
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /driver_location_snapshots/{uid} {
+      allow read, create, update: if isDriver(uid);
+      allow delete: if false;
+    }
+
+    match /driver_signup_codes/{emailKey} {
+      allow read, write: if false;
+    }
+  }
+}

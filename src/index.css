@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --bayblaze-green: #74a84a;
+  --bayblaze-green-dark: #2c541d;
+  --bayblaze-cream: #f6f8f5;
+  --bayblaze-ink: #11130f;
+  --bayblaze-muted: #65705f;
+  --bayblaze-line: #dfe6dc;
+  color: var(--bayblaze-ink);
+  background: #ffffff;
+  font-family: Roboto, Arial, Helvetica, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: #f8faf7;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(116, 168, 74, 0.15), transparent 34rem),
+    linear-gradient(180deg, #ffffff 0%, #f8faf7 48%, #eef5ec 100%);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100svh;
+}

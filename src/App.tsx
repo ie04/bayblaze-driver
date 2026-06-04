@@ -60,12 +60,9 @@ function App() {
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col bg-white shadow-[0_24px_80px_rgba(36,54,24,0.12)] md:my-6 md:min-h-[calc(100svh-3rem)] md:overflow-hidden md:rounded-[28px]">
       <header className="border-b border-[var(--bayblaze-line)] bg-white/95 px-5 pb-4 pt-5 backdrop-blur">
         <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--bayblaze-green)]">
-              BAYBLAZE
-            </p>
-            <h1 className="mt-1 text-2xl font-black tracking-normal text-[var(--bayblaze-ink)]">
-              Driver
+          <div className="min-w-0">
+            <h1 className="text-lg font-black uppercase leading-tight tracking-normal text-[var(--bayblaze-ink)]">
+              BAYBLAZE DRIVER DASHBOARD
             </h1>
           </div>
 

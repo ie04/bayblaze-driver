@@ -61,8 +61,8 @@ function App() {
       <header className="border-b border-[var(--bayblaze-line)] bg-white/95 px-5 pb-4 pt-5 backdrop-blur">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-lg font-black uppercase leading-tight tracking-normal text-[var(--bayblaze-ink)]">
-              BAYBLAZE DRIVER DASHBOARD
+            <h1 className="text-xl font-black uppercase leading-tight tracking-normal text-[var(--bayblaze-ink)]">
+              DRIVER DASHBOARD
             </h1>
           </div>
 

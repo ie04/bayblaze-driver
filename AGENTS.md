@@ -102,8 +102,9 @@ Suggested collections:
 - Firebase Email/Password Authentication is enabled.
 - Firestore `(default)` is enabled in location `nam5`; Firestore rules from
   `firestore.rules` have been deployed.
-- Firebase Storage still needs to be confirmed/enabled before required profile
-  photo onboarding can complete in production.
+- Firebase Storage is enabled with default bucket
+  `bayblaze-driver.firebasestorage.app` in `US-EAST1`; Storage rules from
+  `storage.rules` have been deployed.
 - Firebase Functions deploy alongside the app when email verification, Auth
   account creation, or other privileged server actions are needed.
 - Browser-exposed environment variables must use the `VITE_` prefix and must be

@@ -58,7 +58,7 @@ function App() {
 
   const isLoginScreen = !authLoading && !authUser;
   const shellClassName = isLoginScreen
-    ? "flex min-h-svh w-full flex-col bg-[length:auto_112%] bg-center bg-no-repeat md:bg-cover"
+    ? "flex min-h-svh w-full flex-col bg-[length:auto_145%] bg-center bg-no-repeat md:bg-[length:auto_130%]"
     : "mx-auto flex min-h-svh w-full max-w-md flex-col bg-white shadow-[0_24px_80px_rgba(36,54,24,0.12)] md:my-6 md:min-h-[calc(100svh-3rem)] md:overflow-hidden md:rounded-[28px]";
   const shellStyle = isLoginScreen
     ? {

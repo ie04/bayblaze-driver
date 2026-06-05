@@ -39,25 +39,7 @@ export function DriverDashboard({ profile }: { profile: DriverProfile }) {
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <section className="rounded-[28px] bg-[var(--bayblaze-green-dark)] p-5 text-white shadow-xl shadow-green-950/20">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-green-100">
-              Active shift
-            </p>
-            <h2 className="mt-2 text-3xl font-black leading-tight">
-              {profile.firstName} {profile.lastName}
-            </h2>
-          </div>
-          <span className="grid size-12 place-items-center rounded-2xl bg-white/12">
-            <Navigation size={24} aria-hidden="true" />
-          </span>
-        </div>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <StatusTile icon={<Truck size={18} />} label="Vehicle" value={profile.activeVehicleId ?? "-"} />
-          <StatusTile icon={<Clock size={18} />} label="Status" value="Clocked in" />
-        </div>
-      </section>
+      <ActiveShiftWidget profile={profile} />
 
       <div className="grid grid-cols-2 gap-3">
         <button
@@ -134,6 +116,34 @@ export function DriverDashboard({ profile }: { profile: DriverProfile }) {
         </div>
       </section>
     </div>
+  );
+}
+
+export function ActiveShiftWidget({ profile }: { profile: DriverProfile }) {
+  return (
+    <section className="rounded-[28px] bg-[var(--bayblaze-green-dark)] p-5 text-white shadow-xl shadow-green-950/20">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-green-100">
+            Active shift
+          </p>
+          <h2 className="mt-2 text-3xl font-black leading-tight">
+            {profile.firstName} {profile.lastName}
+          </h2>
+        </div>
+        <span className="grid size-12 place-items-center rounded-2xl bg-white/12">
+          <Navigation size={24} aria-hidden="true" />
+        </span>
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <StatusTile icon={<Truck size={18} />} label="Vehicle" value={profile.activeVehicleId ?? "-"} />
+        <StatusTile
+          icon={<Clock size={18} />}
+          label="Status"
+          value={profile.clockedIn ? "Clocked in" : "Off duty"}
+        />
+      </div>
+    </section>
   );
 }
 

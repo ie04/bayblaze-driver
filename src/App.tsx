@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Loader2,
-  LogOut,
 } from "lucide-react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 import { AuthPanel } from "./components/AuthPanel";
 import { ClockInPanel } from "./components/ClockInPanel";
 import { DriverDashboard } from "./components/DriverDashboard";
+import { DriverProfileScreen } from "./components/DriverProfileScreen";
 import { ProfileSetup } from "./components/ProfileSetup";
 import { VehicleLink } from "./components/VehicleLink";
 import { auth, firebaseReady } from "./lib/firebase";
@@ -19,6 +19,7 @@ function App() {
   const [authUser, setAuthUser] = useState(auth.currentUser);
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
   const [authLoading, setAuthLoading] = useState(firebaseReady);
+  const [activeView, setActiveView] = useState<"dashboard" | "profile">("dashboard");
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -29,6 +30,7 @@ function App() {
       setAuthUser(user);
       if (!user) {
         setProfile(null);
+        setActiveView("dashboard");
       } else {
         setProfile(undefined);
       }
@@ -57,6 +59,7 @@ function App() {
   }
 
   const isLoginScreen = !authLoading && !authUser;
+  const showProfileChrome = Boolean(authUser && profile?.onboardingComplete);
   const shellClassName = isLoginScreen
     ? "flex min-h-svh w-full flex-col bg-[length:auto_80%] bg-center bg-no-repeat md:bg-[length:auto_130%]"
     : "mx-auto flex min-h-svh w-full max-w-md flex-col bg-white shadow-[0_24px_80px_rgba(36,54,24,0.12)] md:my-6 md:min-h-[calc(100svh-3rem)] md:overflow-hidden md:rounded-[28px]";
@@ -70,38 +73,9 @@ function App() {
   return (
     <main className={shellClassName} style={shellStyle}>
       <header className="border-b border-[var(--bayblaze-line)] bg-white/95 px-5 pb-4 pt-5 backdrop-blur">
-        <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-xl font-black uppercase leading-tight tracking-normal text-[var(--bayblaze-ink)]">
-              DRIVER DASHBOARD
-            </h1>
-          </div>
-
-          {authUser ? (
-            <div className="flex items-center gap-2">
-              <div className="grid size-11 place-items-center overflow-hidden rounded-full border border-[var(--bayblaze-line)] bg-[var(--bayblaze-cream)] text-sm font-black text-[var(--bayblaze-green-dark)]">
-                {profile?.profilePhotoUrl ? (
-                  <img
-                    src={profile.profilePhotoUrl}
-                    alt=""
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
-              </div>
-              <button
-                type="button"
-                className="grid size-11 place-items-center rounded-full border border-[var(--bayblaze-line)] text-[var(--bayblaze-muted)] transition hover:border-[var(--bayblaze-green)] hover:text-[var(--bayblaze-green-dark)]"
-                aria-label="Sign out"
-                title="Sign out"
-                onClick={() => void signOut(auth)}
-              >
-                <LogOut size={19} aria-hidden="true" />
-              </button>
-            </div>
-          ) : null}
-        </div>
+        <h1 className="text-center text-xl font-black uppercase leading-tight tracking-normal text-[var(--bayblaze-ink)]">
+          DRIVER DASHBOARD
+        </h1>
       </header>
 
       <section
@@ -119,6 +93,8 @@ function App() {
           />
         ) : !profile?.onboardingComplete ? (
           <ProfileSetup user={authUser} profile={profile ?? null} />
+        ) : activeView === "profile" ? (
+          <DriverProfileScreen profile={profile} onLogout={() => void signOut(auth)} />
         ) : !profile.activeVehicleId ? (
           <VehicleLink profile={profile} />
         ) : !profile.clockedIn ? (
@@ -127,6 +103,34 @@ function App() {
           <DriverDashboard profile={profile} />
         )}
       </section>
+
+      {showProfileChrome ? (
+        <footer className="border-t border-[var(--bayblaze-line)] bg-white/95 px-5 py-3 backdrop-blur">
+          <div className="flex justify-center">
+            <button
+              type="button"
+              className={`grid size-12 place-items-center overflow-hidden rounded-full border text-sm font-black transition ${
+                activeView === "profile"
+                  ? "border-[var(--bayblaze-green)] bg-green-50 text-[var(--bayblaze-green-dark)] shadow-lg shadow-green-900/10"
+                  : "border-[var(--bayblaze-line)] bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
+              }`}
+              aria-label={activeView === "profile" ? "Return to dashboard" : "Open driver profile"}
+              title={activeView === "profile" ? "Dashboard" : "Driver profile"}
+              onClick={() =>
+                setActiveView((current) =>
+                  current === "profile" ? "dashboard" : "profile",
+                )
+              }
+            >
+              {profile?.profilePhotoUrl ? (
+                <img src={profile.profilePhotoUrl} alt="" className="size-full object-cover" />
+              ) : (
+                initials
+              )}
+            </button>
+          </div>
+        </footer>
+      ) : null}
     </main>
   );
 }

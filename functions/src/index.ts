@@ -146,7 +146,8 @@ export const createDriverAccount = onCall<{
 
 export const syncDriverDeliveryQueue = onCall(async (request) => {
   const uid = assertAuthenticated(request.auth?.uid);
-  const medusaQueue = await fetchMedusaDriverQueue(uid);
+  const includeUnassigned = await shouldIncludeUnassignedOrders(uid);
+  const medusaQueue = await fetchMedusaDriverQueue(uid, { includeUnassigned });
   const scoredQueue = await scoreQueueWithIsoChronos(uid, medusaQueue);
 
   await writeDriverQueue(uid, scoredQueue);
@@ -410,7 +411,34 @@ async function writeDriverQueue(uid: string, queue: DriverDeliveryQueue) {
   );
 }
 
-async function fetchMedusaDriverQueue(uid: string): Promise<DriverDeliveryQueue> {
+async function shouldIncludeUnassignedOrders(uid: string) {
+  const snapshot = await db.collection("driver_profiles").where("clockedIn", "==", true).get();
+  const activeDrivers = snapshot.docs
+    .map((driverSnapshot) => {
+      const profile = driverSnapshot.data() as Partial<{
+        activeVehicleId: unknown;
+        onboardingComplete: unknown;
+      }>;
+
+      return {
+        uid: driverSnapshot.id,
+        activeVehicleId: profile.activeVehicleId,
+        onboardingComplete: profile.onboardingComplete,
+      };
+    })
+    .filter((profile) =>
+      profile.onboardingComplete === true &&
+      typeof profile.activeVehicleId === "string" &&
+      profile.activeVehicleId.trim(),
+    );
+
+  return activeDrivers.length === 1 && activeDrivers[0]?.uid === uid;
+}
+
+async function fetchMedusaDriverQueue(
+  uid: string,
+  { includeUnassigned = false }: { includeUnassigned?: boolean } = {},
+): Promise<DriverDeliveryQueue> {
   const baseUrl = process.env.MEDUSA_BACKEND_URL;
   const token = process.env.MEDUSA_ADMIN_API_TOKEN;
   const pathTemplate =
@@ -421,6 +449,10 @@ async function fetchMedusaDriverQueue(uid: string): Promise<DriverDeliveryQueue>
   }
 
   const url = new URL(pathTemplate.replace("{uid}", encodeURIComponent(uid)), baseUrl);
+  if (includeUnassigned) {
+    url.searchParams.set("include_unassigned", "true");
+  }
+
   const response = await fetch(url, {
     headers: buildMedusaServiceHeaders(token, "GET"),
   });

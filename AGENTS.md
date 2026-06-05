@@ -123,6 +123,13 @@ linked to their own UID during clock-out.
   snapshots or interpolation-friendly data through backend/API boundaries.
 - Keep delivery intelligence, coordinates, route cache behavior, and Google
   Maps cost controls out of React page components.
+- Temporary solo-driver dispatch fallback: `syncDriverDeliveryQueue` checks
+  Firestore for active, onboarded, clocked-in drivers with linked vehicles. If
+  exactly one exists and it is the requesting UID, Firebase Functions calls the
+  Medusa driver queue route with `include_unassigned=true` so currently
+  unassigned open orders appear for that driver. With multiple active drivers,
+  only explicitly assigned Medusa orders are returned until a dedicated
+  dispatch/partitioning service assigns unassigned orders.
 
 ## Deployment Assumptions
 

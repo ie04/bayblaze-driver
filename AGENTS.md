@@ -161,6 +161,10 @@ linked to their own UID during clock-out.
   `ISOCHRONOS_API_URL`, `ISOCHRONOS_ADMIN_TOKEN`,
   `ISOCHRONOS_QUEUE_SCORE_PATH`, and `ISOCHRONOS_DRIVER_LOCATION_PATH`.
   Never expose these through `VITE_` frontend variables.
+- The Firebase Functions `ISOCHRONOS_ADMIN_TOKEN` must match the
+  `ISOCHRONOS_ADMIN_TOKEN` GitHub Actions secret in `ie04/bayblaze-isochronos`;
+  otherwise driver queue scoring and live-location updates will receive
+  IsoChronos HTTP 401 responses.
 - Firebase Functions send `MEDUSA_ADMIN_API_TOKEN` to Medusa as both
   `Authorization: Bearer ...` and `x-bayblaze-service-token`. Custom Medusa
   driver integration routes under `/admin` must export `AUTHENTICATE = false`

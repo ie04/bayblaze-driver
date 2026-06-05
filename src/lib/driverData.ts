@@ -17,7 +17,7 @@ import {
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import { db, storage } from "./firebase";
-import type { DriverProfile, VehicleRecord } from "./types";
+import type { DriverLocationSnapshot, DriverProfile, VehicleRecord } from "./types";
 
 export type DeliveryAttemptLogType =
   | "warehouse_arrival"
@@ -197,15 +197,36 @@ export async function updateDriverLocation(profile: DriverProfile) {
     });
   });
 
+  await writeDriverLocationSnapshot(profile, position);
+}
+
+export async function writeDriverLocationSnapshot(
+  profile: DriverProfile,
+  position: GeolocationPosition,
+) {
+  if (!profile.activeVehicleId) {
+    throw new Error("A linked vehicle is required before sharing live location.");
+  }
+
+  // Firestore is the browser-facing live location bus. Server-side consumers can
+  // read these snapshots and call IsoChronos without exposing backend tokens.
+  const snapshot: Omit<DriverLocationSnapshot, "updatedAt"> = {
+    uid: profile.uid,
+    vehicleId: profile.activeVehicleId,
+    lat: position.coords.latitude,
+    lng: position.coords.longitude,
+    accuracy: position.coords.accuracy,
+    heading: position.coords.heading,
+    speed: position.coords.speed,
+    clockedIn: true,
+    source: "driver-pwa",
+    clientCapturedAt: position.timestamp,
+  };
+
   await setDoc(
     doc(db, "driver_location_snapshots", profile.uid),
     {
-      uid: profile.uid,
-      lat: position.coords.latitude,
-      lng: position.coords.longitude,
-      accuracy: position.coords.accuracy,
-      heading: position.coords.heading,
-      speed: position.coords.speed,
+      ...snapshot,
       updatedAt: serverTimestamp(),
     },
     { merge: true },

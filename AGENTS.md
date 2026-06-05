@@ -80,6 +80,10 @@ linked to their own UID during clock-out.
   profile photo before onboarding can complete.
 - A driver must link to an available vehicle before clocking in.
 - A driver must be clocked in to appear active.
+- While clocked in with an active vehicle, the driver PWA streams live location
+  to `driver_location_snapshots/{uid}` with throttled browser geolocation
+  updates. Firestore is the frontend live-location bus; IsoChronos routing/ETA
+  processing must consume these snapshots server-side.
 - Clocking out must mark the driver clocked out, unlink the driver from the
   vehicle, and free that vehicle for another driver.
 - Vehicle selection is required again on the next clock-in so one driver can use

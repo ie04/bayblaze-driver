@@ -39,6 +39,20 @@ export type VehicleRecord = {
   updatedAt?: Timestamp;
 };
 
+export type DriverLocationSnapshot = {
+  uid: string;
+  vehicleId: string;
+  lat: number;
+  lng: number;
+  accuracy: number;
+  heading: number | null;
+  speed: number | null;
+  clockedIn: true;
+  source: "driver-pwa";
+  clientCapturedAt: number;
+  updatedAt?: Timestamp;
+};
+
 export type DriverSignupMode = "login" | "code_sent";
 
 export type PasswordValidation = {

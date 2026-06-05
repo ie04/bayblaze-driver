@@ -7,6 +7,7 @@ import type {
   TextareaHTMLAttributes,
 } from "react";
 import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 function cx(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -447,8 +448,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   title: string;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-5">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] grid place-items-center bg-black/45 px-5">
       <Card as="div" className="w-full max-w-sm" elevated>
         <h3 className="text-xl font-black text-[var(--bb-charcoal)]">{title}</h3>
         {body ? (
@@ -466,7 +467,8 @@ export function ConfirmDialog({
           </Button>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -1,15 +1,62 @@
 @import url("https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+@theme {
+  --color-bayblaze-blaze: var(--bb-blaze);
+  --color-bayblaze-charcoal: var(--bb-charcoal);
+  --color-bayblaze-muted: var(--bb-muted);
+  --color-bayblaze-line: var(--bb-line);
+  --color-bayblaze-surface: var(--bb-surface);
+  --color-bayblaze-warm: var(--bb-surface-warm);
+  --color-bayblaze-success: var(--bb-success);
+  --color-bayblaze-warning: var(--bb-warning);
+  --color-bayblaze-danger: var(--bb-danger);
+  --font-sans: "Jost", Arial, Helvetica, sans-serif;
+  --radius-bayblaze-control: var(--bb-radius-control);
+  --radius-bayblaze-card: var(--bb-radius-card);
+  --shadow-bayblaze-soft: var(--bb-shadow-soft);
+  --shadow-bayblaze-card: var(--bb-shadow-card);
+}
+
 :root {
-  --bayblaze-green: #74a84a;
-  --bayblaze-green-dark: #2c541d;
-  --bayblaze-cream: #f6f8f5;
-  --bayblaze-ink: #11130f;
-  --bayblaze-muted: #65705f;
-  --bayblaze-line: #dfe6dc;
-  color: var(--bayblaze-ink);
-  background: #ffffff;
+  --bb-blaze: #f26a1b;
+  --bb-blaze-strong: #c94d12;
+  --bb-blaze-soft: #fff0e6;
+  --bb-charcoal: #111111;
+  --bb-ink: #1d1d1b;
+  --bb-muted: #6d716b;
+  --bb-line: #e3e0da;
+  --bb-surface: #ffffff;
+  --bb-surface-warm: #f8f5ef;
+  --bb-neutral-soft: #f0f1ef;
+  --bb-success: #2f8f46;
+  --bb-success-strong: #1f6631;
+  --bb-success-soft: #e8f6ec;
+  --bb-warning: #d9961d;
+  --bb-warning-strong: #855b0e;
+  --bb-warning-soft: #fff5dc;
+  --bb-danger: #dc2626;
+  --bb-danger-strong: #991b1b;
+  --bb-danger-soft: #fee2e2;
+  --bb-info: #2563eb;
+  --bb-info-strong: #1d4ed8;
+  --bb-info-soft: #dbeafe;
+  --bb-focus: rgba(242, 106, 27, 0.42);
+  --bb-radius-control: 16px;
+  --bb-radius-card: 24px;
+  --bb-radius-shell: 28px;
+  --bb-shadow-soft: 0 1px 2px rgba(17, 17, 17, 0.06);
+  --bb-shadow-card: 0 16px 40px rgba(17, 17, 17, 0.08);
+  --bb-shadow-action: 0 14px 28px rgba(201, 77, 18, 0.18);
+  --bb-shadow-shell: 0 24px 80px rgba(17, 17, 17, 0.14);
+  --bayblaze-green: var(--bb-blaze);
+  --bayblaze-green-dark: var(--bb-charcoal);
+  --bayblaze-cream: var(--bb-surface-warm);
+  --bayblaze-ink: var(--bb-charcoal);
+  --bayblaze-muted: var(--bb-muted);
+  --bayblaze-line: var(--bb-line);
+  color: var(--bb-charcoal);
+  background: var(--bb-surface);
   font-family: "Jost", Arial, Helvetica, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -23,15 +70,18 @@
 
 html {
   min-height: 100%;
-  background: #f8faf7;
+  background: var(--bb-surface-warm);
 }
 
 body {
   min-height: 100%;
   margin: 0;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(116, 168, 74, 0.15), transparent 34rem),
-    linear-gradient(180deg, #ffffff 0%, #f8faf7 48%, #eef5ec 100%);
+  background: linear-gradient(
+    180deg,
+    var(--bb-surface) 0%,
+    var(--bb-surface-warm) 58%,
+    #eee9df 100%
+  );
 }
 
 button,
@@ -82,13 +132,13 @@ button {
   border-radius: 999px;
   animation: confetti-pop 900ms ease-out both;
   box-shadow:
-    -120px 12px #74a84a,
-    -86px -42px #ef4444,
-    -48px 28px #facc15,
-    -10px -70px #38bdf8,
-    34px 18px #74a84a,
-    74px -38px #ef4444,
-    116px 6px #facc15;
+    -120px 12px var(--bb-blaze),
+    -86px -42px var(--bb-danger),
+    -48px 28px var(--bb-warning),
+    -10px -70px var(--bb-info),
+    34px 18px var(--bb-success),
+    74px -38px var(--bb-danger),
+    116px 6px var(--bb-warning);
   content: "";
 }
 

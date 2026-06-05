@@ -1,6 +1,7 @@
-import { type FormEvent, type ReactNode, useMemo, useState } from "react";
-import { Check, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { type FormEvent, useMemo, useState } from "react";
+import { Check, KeyRound, Mail, ShieldCheck } from "lucide-react";
 
+import { Button, Card, ErrorState, Input, InlineNotice } from "./ui";
 import { createAllowedDriverAccount, getAllowlistStatus, requestDriverAccess } from "../lib/driverAccess";
 import { normalizeEmail } from "../lib/email";
 import { isValidPassword, validatePassword } from "../lib/password";
@@ -93,133 +94,121 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
   }
 
   return (
-    <div className="flex w-full flex-col justify-center rounded-[24px] border border-white/70 bg-white/90 px-5 py-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
+    <Card
+      as="div"
+      className="flex w-full flex-col justify-center border-white/70 bg-white/90 px-5 py-6 shadow-2xl shadow-black/20 backdrop-blur-sm"
+    >
       <div className="mb-7">
-        <div className="grid size-14 place-items-center rounded-2xl bg-[var(--bayblaze-green)] text-white shadow-lg shadow-green-900/15">
+        <div className="grid size-14 place-items-center rounded-2xl bg-[var(--bb-blaze)] text-white shadow-[var(--bb-shadow-action)]">
           <ShieldCheck size={28} aria-hidden="true" />
         </div>
-        <h2 className="mt-5 text-3xl font-black leading-tight text-[var(--bayblaze-ink)]">
+        <h2 className="mt-5 text-3xl font-black leading-tight text-[var(--bb-charcoal)]">
           Sign In
         </h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--bayblaze-muted)]">
+        <p className="mt-2 text-sm leading-6 text-[var(--bb-muted)]">
           Use your approved BayBlaze driver email.
         </p>
       </div>
 
       {step === "email" ? (
         <form className="space-y-4" onSubmit={handleEmailSubmit}>
-          <FieldShell icon={<Mail size={18} aria-hidden="true" />}>
-            <input
-              className="w-full bg-transparent py-3 text-base font-semibold text-[var(--bayblaze-ink)] outline-none placeholder:text-slate-400"
-              type="email"
-              autoComplete="email"
-              placeholder="driver@example.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </FieldShell>
-          <PrimaryButton loading={loading}>Continue</PrimaryButton>
+          <Input
+            icon={<Mail size={18} aria-hidden="true" />}
+            type="email"
+            autoComplete="email"
+            placeholder="driver@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+          <Button fullWidth loading={loading} type="submit">
+            Continue
+          </Button>
         </form>
       ) : null}
 
       {step === "login" ? (
         <form className="space-y-4" onSubmit={handleLoginSubmit}>
           <ReadOnlyEmail email={email} onChange={() => setStep("email")} />
-          <FieldShell icon={<KeyRound size={18} aria-hidden="true" />}>
-            <input
-              className="w-full bg-transparent py-3 text-base font-semibold text-[var(--bayblaze-ink)] outline-none placeholder:text-slate-400"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </FieldShell>
-          <PrimaryButton loading={loading}>Sign in</PrimaryButton>
+          <Input
+            icon={<KeyRound size={18} aria-hidden="true" />}
+            type="password"
+            autoComplete="current-password"
+            placeholder="Password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+          <Button fullWidth loading={loading} type="submit">
+            Sign in
+          </Button>
         </form>
       ) : null}
 
       {step === "signup" ? (
         <form className="space-y-4" onSubmit={handleSignupSubmit}>
           <ReadOnlyEmail email={email} onChange={() => setStep("email")} />
-          <FieldShell icon={<KeyRound size={18} aria-hidden="true" />}>
-            <input
-              className="w-full bg-transparent py-3 text-base font-semibold text-[var(--bayblaze-ink)] outline-none placeholder:text-slate-400"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="Verification code"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              required
-            />
-          </FieldShell>
-          <FieldShell icon={<KeyRound size={18} aria-hidden="true" />}>
-            <input
-              className="w-full bg-transparent py-3 text-base font-semibold text-[var(--bayblaze-ink)] outline-none placeholder:text-slate-400"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Create password"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              required
-            />
-          </FieldShell>
-          <FieldShell icon={<KeyRound size={18} aria-hidden="true" />}>
-            <input
-              className="w-full bg-transparent py-3 text-base font-semibold text-[var(--bayblaze-ink)] outline-none placeholder:text-slate-400"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Confirm password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              required
-            />
-          </FieldShell>
+          <Input
+            icon={<KeyRound size={18} aria-hidden="true" />}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="Verification code"
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            required
+          />
+          <Input
+            icon={<KeyRound size={18} aria-hidden="true" />}
+            type="password"
+            autoComplete="new-password"
+            placeholder="Create password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            required
+          />
+          <Input
+            icon={<KeyRound size={18} aria-hidden="true" />}
+            type="password"
+            autoComplete="new-password"
+            placeholder="Confirm password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+          />
           <PasswordChecklist
             minLength={passwordState.minLength}
             lettersAndNumbers={passwordState.lettersAndNumbers}
             symbol={passwordState.symbol}
             matches={newPassword.length > 0 && newPassword === confirmPassword}
           />
-          <PrimaryButton loading={loading}>Create account</PrimaryButton>
+          <Button fullWidth loading={loading} type="submit">
+            Create account
+          </Button>
         </form>
       ) : null}
 
       {message ? (
-        <p className="mt-4 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-[var(--bayblaze-green-dark)]">
+        <InlineNotice className="mt-4" tone="success">
           {message}
-        </p>
+        </InlineNotice>
       ) : null}
 
       {error ? (
-        <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
+        <ErrorState className="mt-4">{error}</ErrorState>
       ) : null}
-    </div>
-  );
-}
-
-function FieldShell({ children, icon }: { children: ReactNode; icon: ReactNode }) {
-  return (
-    <label className="flex items-center gap-3 rounded-2xl border border-[var(--bayblaze-line)] bg-white px-4 shadow-sm focus-within:border-[var(--bayblaze-green)]">
-      <span className="text-[var(--bayblaze-green-dark)]">{icon}</span>
-      {children}
-    </label>
+    </Card>
   );
 }
 
 function ReadOnlyEmail({ email, onChange }: { email: string; onChange: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--bayblaze-line)] bg-[var(--bayblaze-cream)] px-4 py-3">
-      <span className="min-w-0 truncate text-sm font-black text-[var(--bayblaze-ink)]">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-surface-warm)] px-4 py-3">
+      <span className="min-w-0 truncate text-sm font-black text-[var(--bb-charcoal)]">
         {email}
       </span>
       <button
         type="button"
-        className="shrink-0 text-sm font-black text-[var(--bayblaze-green-dark)]"
+        className="shrink-0 text-sm font-black text-[var(--bb-charcoal)]"
         onClick={onChange}
       >
         Change
@@ -252,8 +241,8 @@ function PasswordChecklist({
         <div
           className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black ${
             checked
-              ? "border-green-200 bg-green-50 text-[var(--bayblaze-green-dark)]"
-              : "border-slate-200 bg-slate-50 text-slate-500"
+              ? "border-[var(--bb-success-soft)] bg-[var(--bb-success-soft)] text-[var(--bb-success-strong)]"
+              : "border-[var(--bb-line)] bg-[var(--bb-neutral-soft)] text-[var(--bb-muted)]"
           }`}
           key={label}
         >
@@ -262,25 +251,6 @@ function PasswordChecklist({
         </div>
       ))}
     </div>
-  );
-}
-
-function PrimaryButton({
-  children,
-  loading,
-}: {
-  children: ReactNode;
-  loading?: boolean;
-}) {
-  return (
-    <button
-      type="submit"
-      className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--bayblaze-green)] px-5 text-base font-black text-white shadow-lg shadow-green-900/15 transition hover:bg-[var(--bayblaze-green-dark)] disabled:cursor-not-allowed disabled:opacity-60"
-      disabled={loading}
-    >
-      {loading ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
-      {children}
-    </button>
   );
 }
 

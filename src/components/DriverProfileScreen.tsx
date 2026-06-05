@@ -5,6 +5,7 @@ import { LogOut, Mail, Phone, Power, UserRound } from "lucide-react";
 import { ActiveShiftWidget } from "./DriverDashboard";
 import { clockOutDriver } from "../lib/driverData";
 import type { DriverProfile } from "../lib/types";
+import { Button, Card, ErrorState } from "./ui";
 
 export function DriverProfileScreen({
   profile,
@@ -32,9 +33,9 @@ export function DriverProfileScreen({
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <section className="rounded-[28px] border border-[var(--bayblaze-line)] bg-white p-5 shadow-sm">
+      <Card>
         <div className="flex items-center gap-4">
-          <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-[24px] bg-[var(--bayblaze-cream)] text-xl font-black text-[var(--bayblaze-green-dark)]">
+          <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-[24px] bg-[var(--bb-surface-warm)] text-xl font-black text-[var(--bb-charcoal)]">
             {profile.profilePhotoUrl ? (
               <img
                 src={profile.profilePhotoUrl}
@@ -46,10 +47,10 @@ export function DriverProfileScreen({
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--bayblaze-green)]">
+            <p className="text-xs font-black uppercase text-[var(--bb-blaze)]">
               Driver profile
             </p>
-            <h2 className="mt-1 truncate text-2xl font-black text-[var(--bayblaze-ink)]">
+            <h2 className="mt-1 truncate text-2xl font-black text-[var(--bb-charcoal)]">
               {profile.firstName} {profile.lastName}
             </h2>
           </div>
@@ -63,10 +64,10 @@ export function DriverProfileScreen({
           />
         </div>
 
-        <p className="mt-5 rounded-2xl bg-[var(--bayblaze-cream)] px-4 py-3 text-sm font-semibold leading-6 text-[var(--bayblaze-muted)]">
+        <p className="mt-5 rounded-2xl bg-[var(--bb-surface-warm)] px-4 py-3 text-sm font-semibold leading-6 text-[var(--bb-muted)]">
           {profile.bio}
         </p>
-      </section>
+      </Card>
 
       <ActiveShiftWidget
         profile={profile}
@@ -91,28 +92,22 @@ export function DriverProfileScreen({
       />
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
+        <ErrorState>{error}</ErrorState>
       ) : null}
 
-      <button
-        type="button"
-        className="mt-auto flex h-14 items-center justify-center gap-2 rounded-full border border-red-100 bg-red-50 px-6 text-sm font-black uppercase text-red-800 shadow-sm transition hover:bg-red-100"
-        onClick={onLogout}
-      >
+      <Button className="mt-auto" fullWidth onClick={onLogout} variant="danger">
         <LogOut size={18} aria-hidden="true" />
         LOG OUT
-      </button>
+      </Button>
     </div>
   );
 }
 
 function ProfileRow({ icon, value }: { icon: ReactNode; value: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[var(--bayblaze-line)] px-4 py-3">
-      <span className="shrink-0 text-[var(--bayblaze-green-dark)]">{icon}</span>
-      <span className="min-w-0 truncate text-sm font-black text-[var(--bayblaze-ink)]">
+    <div className="flex items-center gap-3 rounded-2xl border border-[var(--bb-line)] px-4 py-3">
+      <span className="shrink-0 text-[var(--bb-charcoal)]">{icon}</span>
+      <span className="min-w-0 truncate text-sm font-black text-[var(--bb-charcoal)]">
         {value}
       </span>
     </div>

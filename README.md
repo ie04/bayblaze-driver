@@ -41,3 +41,21 @@ settings are listed in `functions/.env.example`.
 
 Passwords are handled only by Firebase Authentication and are never stored in
 Firestore.
+
+## BayBlaze UI Primitives
+
+Reusable React + Tailwind primitives live in `src/components/ui`. New driver UI
+should import shared pieces such as `Button`, `Card`, `Badge`, `Input`,
+`Textarea`, `AppShell`, `BottomNav`, `EmptyState`, `LoadingState`, `ErrorState`,
+`MetricCard`, `OrderCard`, and `ActionBar` from that module instead of repeating
+raw Tailwind class stacks.
+
+Brand tokens are centralized in `src/index.css` as `--bb-*` CSS variables and
+Tailwind v4 `@theme` entries. Future BayBlaze apps can lift this UI folder plus
+the token block as the starting point for a shared package.
+
+The driver app shell, auth/profile forms, vehicle selection, active shift,
+live-location card, delivery route, and delivery workflow now use these
+primitives. When adding a primitive, keep the default BayBlaze shape, focus
+state, tap target, tone names, and token usage inside `src/components/ui`, then
+allow screen-specific layout through `className` only where needed.

@@ -70,6 +70,7 @@ export type DriverDeliveryItem = {
 
 export type DriverDeliveryStop = {
   orderId: string;
+  customerPhone?: string;
   customerName: string;
   customerAddress: string;
   status: DeliveryStopStatus;

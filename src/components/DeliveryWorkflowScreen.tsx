@@ -12,7 +12,6 @@ import {
   CheckCircle,
   ClipboardList,
   FileText,
-  Loader2,
   Map,
   PackageCheck,
   PartyPopper,
@@ -25,6 +24,7 @@ import {
   uploadDeliveryAttemptPhoto,
 } from "../lib/driverData";
 import type { DriverDeliveryItem, DriverDeliveryStop, DriverProfile } from "../lib/types";
+import { ActionBar, Button, ConfirmDialog, ErrorState, Textarea } from "./ui";
 
 type WorkflowStep =
   | "warehouse"
@@ -176,13 +176,9 @@ export function DeliveryWorkflowScreen({
         <h2 className="mt-5 text-3xl font-black leading-tight text-[var(--bayblaze-ink)]">
           You successfully completed this order. Good Job!
         </h2>
-        <button
-          type="button"
-          className="mt-8 flex h-14 w-full items-center justify-center rounded-full bg-[var(--bayblaze-green)] px-6 text-base font-black text-white shadow-lg shadow-green-900/15"
-          onClick={onReturnToRoute}
-        >
+        <Button className="mt-8" fullWidth onClick={onReturnToRoute}>
           Return to Delivery Route
-        </button>
+        </Button>
       </div>
     );
   }
@@ -294,34 +290,29 @@ export function DeliveryWorkflowScreen({
             />
           </div>
           {showCancelReason ? (
-            <textarea
-              className="min-h-24 resize-none rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-base font-semibold text-red-800 outline-none placeholder:text-red-300"
+            <Textarea
+              className="[&>textarea]:min-h-24 [&>textarea]:border-[var(--bb-danger-soft)] [&>textarea]:bg-[var(--bb-danger-soft)] [&>textarea]:text-[var(--bb-danger-strong)]"
               placeholder="Cancellation reason"
               value={cancelReason}
               onChange={(event) => setCancelReason(event.target.value)}
             />
           ) : null}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              className={`flex h-14 items-center justify-center rounded-full px-4 text-sm font-black ${
-                allIdChecksPassed
-                  ? "bg-[var(--bayblaze-green)] text-white"
-                  : "cursor-not-allowed bg-slate-200 text-slate-500"
-              }`}
+          <ActionBar>
+            <Button
               disabled={!allIdChecksPassed}
               onClick={() => setStep("id-photo")}
+              size="sm"
             >
               Take Photo
-            </button>
-            <button
-              type="button"
-              className="flex h-14 items-center justify-center rounded-full border border-red-100 bg-red-50 px-4 text-sm font-black text-red-800"
+            </Button>
+            <Button
               onClick={() => void handleCancelOrder()}
+              size="sm"
+              variant="danger"
             >
               {showCancelReason ? "Submit Cancel" : "Cancel Order"}
-            </button>
-          </div>
+            </Button>
+          </ActionBar>
         </StepShell>
       ) : null}
 
@@ -362,9 +353,7 @@ export function DeliveryWorkflowScreen({
       ) : null}
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
+        <ErrorState>{error}</ErrorState>
       ) : null}
 
       {confirmingItemId ? (
@@ -407,14 +396,10 @@ function StepShell({
 
 function OpenMapsButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
-      className="flex h-14 items-center justify-center gap-2 rounded-full border border-[var(--bayblaze-line)] bg-white px-6 text-base font-black text-[var(--bayblaze-ink)] shadow-sm"
-      onClick={onClick}
-    >
+    <Button fullWidth onClick={onClick} variant="secondary">
       <Map size={20} aria-hidden="true" />
       Open Maps
-    </button>
+    </Button>
   );
 }
 
@@ -430,15 +415,15 @@ function PrimaryButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      className="mt-auto flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--bayblaze-green)] px-6 text-base font-black text-white shadow-lg shadow-green-900/15 transition disabled:cursor-not-allowed disabled:opacity-60"
-      disabled={disabled || loading}
+    <Button
+      className="mt-auto"
+      disabled={disabled}
+      fullWidth
+      loading={loading}
       onClick={onClick}
     >
-      {loading ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -533,38 +518,19 @@ function ConfirmationDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-5">
-      <div className="w-full max-w-sm rounded-[24px] bg-white p-5 shadow-2xl">
-        <h3 className="text-xl font-black text-[var(--bayblaze-ink)]">
-          Confirm item
-        </h3>
-        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--bayblaze-muted)]">
-          Confirm you put the right variant and quantity in the box.
+    <ConfirmDialog
+      body="Confirm you put the right variant and quantity in the box."
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+      title="Confirm item"
+    >
+      <div className="rounded-2xl bg-[var(--bb-surface-warm)] p-4">
+        <p className="font-black text-[var(--bb-charcoal)]">{item.name}</p>
+        <p className="mt-1 text-sm font-semibold text-[var(--bb-muted)]">
+          {item.variant} / Qty {item.quantity}
         </p>
-        <div className="mt-4 rounded-2xl bg-[var(--bayblaze-cream)] p-4">
-          <p className="font-black text-[var(--bayblaze-ink)]">{item.name}</p>
-          <p className="mt-1 text-sm font-semibold text-[var(--bayblaze-muted)]">
-            {item.variant} / Qty {item.quantity}
-          </p>
-        </div>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            className="flex h-12 items-center justify-center rounded-full border border-[var(--bayblaze-line)] font-black text-[var(--bayblaze-ink)]"
-            onClick={onCancel}
-          >
-            Go Back
-          </button>
-          <button
-            type="button"
-            className="flex h-12 items-center justify-center rounded-full bg-[var(--bayblaze-green)] font-black text-white"
-            onClick={onConfirm}
-          >
-            Confirm
-          </button>
-        </div>
       </div>
-    </div>
+    </ConfirmDialog>
   );
 }
 

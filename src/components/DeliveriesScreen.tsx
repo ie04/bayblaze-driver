@@ -1,7 +1,30 @@
 import type { ReactNode } from "react";
-import { Loader2, Lock, Navigation, RefreshCw, Route, Sparkles } from "lucide-react";
+import {
+  Loader2,
+  Lock,
+  MessageSquare,
+  Navigation,
+  Phone,
+  RefreshCw,
+  Route,
+  ShieldCheck,
+  Sparkles,
+  Warehouse,
+} from "lucide-react";
 
 import type { DriverDeliveryQueue, DriverDeliveryStop, DeliveryStopStatus } from "../lib/types";
+import {
+  ActionBar,
+  Button,
+  Card,
+  EmptyState,
+  InlineNotice,
+  LoadingState,
+  MetricCard,
+  OrderCard,
+  PageHeader,
+  SectionHeader,
+} from "./ui";
 
 const statusMeta = {
   current: {
@@ -31,59 +54,89 @@ export function DeliveriesScreen({
 }) {
   const stops = queue?.stops ?? [];
   const currentStop = stops[0] ?? null;
+  const nextStop = stops[1] ?? null;
+  const warehouseItemCount = currentStop?.items.filter(
+    (item) => item.inventoryLocation === "warehouse",
+  ).length ?? 0;
+
+  if (syncing && !queue) {
+    return <LoadingState label="Syncing delivery route" />;
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-3xl font-black leading-tight text-[var(--bayblaze-ink)]">
-          Delivery Route
-        </h2>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-2xl border border-[var(--bayblaze-line)] bg-white text-[var(--bayblaze-green-dark)]"
-            aria-label="Sync delivery route"
-            title="Sync delivery route"
-            onClick={onSync}
-            disabled={syncing}
-          >
-            {syncing ? (
-              <Loader2 className="size-5 animate-spin" aria-hidden="true" />
-            ) : (
-              <RefreshCw size={19} aria-hidden="true" />
-            )}
-          </button>
-          <span className="grid size-11 place-items-center rounded-2xl bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]">
-            <Route size={22} aria-hidden="true" />
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title="Delivery Route"
+        subtitle={currentStop ? "Priority stop is locked until completed." : undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              aria-label="Sync delivery route"
+              disabled={syncing}
+              onClick={onSync}
+              size="icon"
+              title="Sync delivery route"
+              variant="secondary"
+            >
+              {syncing ? (
+                <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw size={19} aria-hidden="true" />
+              )}
+            </Button>
+            <span className="grid size-12 place-items-center rounded-2xl bg-[var(--bb-surface-warm)] text-[var(--bb-charcoal)]">
+              <Route size={22} aria-hidden="true" />
+            </span>
+          </div>
+        }
+      />
 
       {stops.length === 0 ? (
-        <div className="grid flex-1 place-items-center rounded-[28px] border border-[var(--bayblaze-line)] bg-white p-5 text-center">
-          <div>
-            <p className="text-lg font-black text-[var(--bayblaze-ink)]">
-              No assigned deliveries
-            </p>
-            <p className="mt-1 text-sm leading-6 text-[var(--bayblaze-muted)]">
-              Delivery assignments from Medusa and IsoChronos scoring will appear here.
-            </p>
-            <button
-              type="button"
-              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--bayblaze-green)] px-5 text-sm font-black text-white"
-              onClick={onSync}
-              disabled={syncing}
-            >
-              {syncing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+        <EmptyState
+          action={
+            <Button fullWidth loading={syncing} onClick={onSync} size="sm">
               Sync Deliveries
-            </button>
-          </div>
-        </div>
+            </Button>
+          }
+          icon={<Route size={22} aria-hidden="true" />}
+          title="No assigned deliveries"
+        >
+          Delivery assignments from Medusa and IsoChronos scoring will appear here.
+        </EmptyState>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="grid gap-3 pb-4">
+          <div className="grid gap-4 pb-4">
+            <RouteStatusCard
+              currentStop={currentStop}
+              nextStop={nextStop}
+              stopCount={stops.length}
+            />
+
+            {currentStop ? (
+              <PriorityDeliveryCard
+                delivery={currentStop}
+                onOpen={() => onOpenCurrentDelivery(currentStop)}
+              />
+            ) : null}
+
+            {warehouseItemCount > 0 ? (
+              <InlineNotice>
+                {warehouseItemCount} item{warehouseItemCount === 1 ? "" : "s"} must be picked
+                up at the warehouse before customer handoff.
+              </InlineNotice>
+            ) : null}
+
+            <InlineNotice tone="info">
+              <span className="font-black">ID check required.</span> Verify age, expiration,
+              photo match, ID photo, and merchant invoice before handoff.
+            </InlineNotice>
+
+            <SectionHeader
+              title="Active orders"
+              subtitle="Current and next stops stay locked for driver safety."
+            />
             {stops.map((delivery, index) => (
-              <DeliveryPill
+              <DeliveryRouteCard
                 delivery={delivery}
                 key={delivery.orderId}
                 muted={index > 1}
@@ -101,7 +154,92 @@ export function DeliveriesScreen({
   );
 }
 
-function DeliveryPill({
+function RouteStatusCard({
+  currentStop,
+  nextStop,
+  stopCount,
+}: {
+  currentStop: DriverDeliveryStop | null;
+  nextStop: DriverDeliveryStop | null;
+  stopCount: number;
+}) {
+  return (
+    <Card>
+      <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase text-[var(--bb-blaze)]">
+        <ShieldCheck size={15} aria-hidden="true" />
+        Route status
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <MetricCard label="Stops" value={stopCount} />
+        <MetricCard label="Current" value={currentStop?.eta ?? "Ready"} />
+        <MetricCard label="Next" value={nextStop?.eta ?? "None"} />
+      </div>
+    </Card>
+  );
+}
+
+function PriorityDeliveryCard({
+  delivery,
+  onOpen,
+}: {
+  delivery: DriverDeliveryStop;
+  onOpen: () => void;
+}) {
+  return (
+    <OrderCard
+      current
+      icon={<Navigation size={19} aria-hidden="true" />}
+      title={delivery.customerName}
+      subtitle={delivery.customerAddress}
+      status="Priority"
+      statusTone="brand"
+      meta={
+        <div className="grid gap-3">
+          <div className="flex items-center gap-2 text-sm font-bold text-[var(--bb-muted)]">
+            {delivery.items.some((item) => item.inventoryLocation === "warehouse") ? (
+              <>
+                <Warehouse size={16} aria-hidden="true" />
+                Warehouse pickup required
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={16} aria-hidden="true" />
+                ID check before handoff
+              </>
+            )}
+          </div>
+          <ActionBar columns={3}>
+            <Button fullWidth onClick={onOpen} size="sm">
+              Start
+            </Button>
+            <Button
+              fullWidth
+              disabled={!delivery.customerPhone}
+              onClick={() => openCustomerSms(delivery.customerPhone)}
+              size="sm"
+              variant="secondary"
+            >
+              <MessageSquare size={16} aria-hidden="true" />
+              SMS
+            </Button>
+            <Button
+              fullWidth
+              disabled={!delivery.customerPhone}
+              onClick={() => openCustomerCall(delivery.customerPhone)}
+              size="sm"
+              variant="secondary"
+            >
+              <Phone size={16} aria-hidden="true" />
+              Call
+            </Button>
+          </ActionBar>
+        </div>
+      }
+    />
+  );
+}
+
+function DeliveryRouteCard({
   delivery,
   muted,
   onClick,
@@ -111,54 +249,51 @@ function DeliveryPill({
   onClick?: () => void;
 }) {
   const meta = statusMeta[delivery.status];
+  const statusLabel =
+    delivery.status === "current"
+      ? "Current"
+      : delivery.status === "locked"
+        ? "Locked"
+        : "Queued";
+  const statusTone: "brand" | "warning" | "neutral" =
+    delivery.status === "current"
+      ? "brand"
+      : delivery.status === "locked"
+        ? "warning"
+        : "neutral";
 
   return (
-    <button
-      type="button"
-      className={`rounded-[24px] border p-4 shadow-sm ${
-        muted
-          ? "border-slate-200 bg-slate-50 text-slate-400 opacity-70"
-          : delivery.status === "current"
-            ? "border-[var(--bayblaze-green)] bg-white text-[var(--bayblaze-ink)]"
-            : "border-[var(--bayblaze-line)] bg-white text-[var(--bayblaze-ink)]"
-      } ${onClick ? "text-left transition hover:border-[var(--bayblaze-green)]" : "text-left"}`}
-      disabled={!onClick}
+    <OrderCard
+      current={delivery.status === "current"}
+      icon={<span title={meta.title}>{meta.icon}</span>}
+      muted={muted}
       onClick={onClick}
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <span
-          className={`grid size-10 shrink-0 place-items-center rounded-2xl ${
-            muted
-              ? "bg-slate-200 text-slate-500"
-              : delivery.status === "current"
-                ? "bg-[var(--bayblaze-green)] text-white"
-                : "bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
-          }`}
-          title={meta.title}
-        >
-          {meta.icon}
-        </span>
-        <div className="min-w-0">
-          <p
-            className={`truncate text-base font-black ${
-              muted ? "text-slate-500" : "text-[var(--bayblaze-ink)]"
-            }`}
-          >
-            {delivery.customerName}
-          </p>
-          <p
-            className={`mt-1 truncate text-sm font-semibold ${
-              muted ? "text-slate-400" : "text-[var(--bayblaze-muted)]"
-            }`}
-          >
-            {delivery.status === "current"
-              ? "Current stop"
-              : delivery.status === "locked"
-                ? "Next stop locked"
-                : delivery.eta ?? "Score-ranked queue"}
-          </p>
-        </div>
-      </div>
-    </button>
+      status={statusLabel}
+      statusTone={statusTone}
+      title={delivery.customerName}
+      subtitle={
+        delivery.status === "current"
+          ? "Current stop"
+          : delivery.status === "locked"
+            ? "Next stop locked"
+            : delivery.eta ?? "Score-ranked queue"
+      }
+    />
   );
+}
+
+function openCustomerSms(phone?: string) {
+  if (!phone) {
+    return;
+  }
+
+  window.location.href = `sms:${phone}`;
+}
+
+function openCustomerCall(phone?: string) {
+  if (!phone) {
+    return;
+  }
+
+  window.location.href = `tel:${phone}`;
 }

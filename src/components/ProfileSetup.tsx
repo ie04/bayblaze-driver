@@ -1,9 +1,10 @@
-import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
-import { Camera, Loader2, Phone, UserRound } from "lucide-react";
+import { Camera, Phone, UserRound } from "lucide-react";
 
 import { saveDriverProfile } from "../lib/driverData";
 import type { DriverProfile } from "../lib/types";
+import { Button, ErrorState, Input, PageHeader, Textarea } from "./ui";
 
 export function ProfileSetup({
   user,
@@ -64,23 +65,19 @@ export function ProfileSetup({
 
   return (
     <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
-      <div>
-        <h2 className="text-3xl font-black leading-tight text-[var(--bayblaze-ink)]">
-          Driver profile
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--bayblaze-muted)]">
-          This profile is visible to BayBlaze dispatch.
-        </p>
-      </div>
+      <PageHeader
+        title="Driver profile"
+        subtitle="This profile is visible to BayBlaze dispatch."
+      />
 
-      <label className="relative flex min-h-44 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[24px] border border-dashed border-[var(--bayblaze-green)] bg-[var(--bayblaze-cream)] text-center">
+      <label className="relative flex min-h-44 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[24px] border border-dashed border-[var(--bb-blaze)] bg-[var(--bb-surface-warm)] text-center">
         {photoPreview ? (
           <img src={photoPreview} alt="" className="absolute inset-0 size-full object-cover" />
         ) : null}
-        <span className="relative z-10 grid size-14 place-items-center rounded-full bg-white text-[var(--bayblaze-green-dark)] shadow-lg">
+        <span className="relative z-10 grid size-14 place-items-center rounded-full bg-white text-[var(--bb-charcoal)] shadow-lg">
           <Camera size={25} aria-hidden="true" />
         </span>
-        <span className="relative z-10 mt-3 text-sm font-black text-[var(--bayblaze-green-dark)]">
+        <span className="relative z-10 mt-3 text-sm font-black text-[var(--bb-charcoal)]">
           Profile photo
         </span>
         <input
@@ -94,33 +91,35 @@ export function ProfileSetup({
       </label>
 
       <div className="grid grid-cols-2 gap-3">
-        <TextInput
+        <Input
           icon={<UserRound size={17} aria-hidden="true" />}
           placeholder="First name"
           value={firstName}
-          onChange={setFirstName}
+          onChange={(event) => setFirstName(event.target.value)}
           autoComplete="given-name"
+          required
         />
-        <TextInput
+        <Input
           icon={<UserRound size={17} aria-hidden="true" />}
           placeholder="Last name"
           value={lastName}
-          onChange={setLastName}
+          onChange={(event) => setLastName(event.target.value)}
           autoComplete="family-name"
+          required
         />
       </div>
 
-      <TextInput
+      <Input
         icon={<Phone size={17} aria-hidden="true" />}
         placeholder="Phone number"
         value={phoneNumber}
-        onChange={setPhoneNumber}
+        onChange={(event) => setPhoneNumber(event.target.value)}
         autoComplete="tel"
         type="tel"
+        required
       />
 
-      <textarea
-        className="min-h-32 resize-none rounded-2xl border border-[var(--bayblaze-line)] bg-white px-4 py-3 text-base font-semibold text-[var(--bayblaze-ink)] outline-none placeholder:text-slate-400 focus:border-[var(--bayblaze-green)]"
+      <Textarea
         placeholder="Bio"
         value={bio}
         onChange={(event) => setBio(event.target.value)}
@@ -128,50 +127,12 @@ export function ProfileSetup({
       />
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
+        <ErrorState>{error}</ErrorState>
       ) : null}
 
-      <button
-        type="submit"
-        className="mt-auto flex h-14 items-center justify-center gap-2 rounded-2xl bg-[var(--bayblaze-green)] px-5 text-base font-black text-white shadow-lg shadow-green-900/15 transition hover:bg-[var(--bayblaze-green-dark)] disabled:opacity-60"
-        disabled={loading}
-      >
-        {loading ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
+      <Button className="mt-auto" fullWidth loading={loading} type="submit">
         Save profile
-      </button>
+      </Button>
     </form>
-  );
-}
-
-function TextInput({
-  icon,
-  placeholder,
-  value,
-  onChange,
-  type = "text",
-  autoComplete,
-}: {
-  icon: ReactNode;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="flex items-center gap-2 rounded-2xl border border-[var(--bayblaze-line)] bg-white px-3 focus-within:border-[var(--bayblaze-green)]">
-      <span className="shrink-0 text-[var(--bayblaze-green-dark)]">{icon}</span>
-      <input
-        className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold text-[var(--bayblaze-ink)] outline-none placeholder:text-slate-400"
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        required
-      />
-    </label>
   );
 }

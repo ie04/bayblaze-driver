@@ -3,6 +3,7 @@ import { Clock, Loader2, MapPin, Navigation, RefreshCw, Truck } from "lucide-rea
 
 import { useLiveDriverLocation } from "../hooks/useLiveDriverLocation";
 import type { DriverProfile } from "../lib/types";
+import { Button, Card, InlineNotice, MetricCard } from "./ui";
 
 export function DriverDashboard({ profile }: { profile: DriverProfile }) {
   const liveLocation = useLiveDriverLocation(profile);
@@ -27,13 +28,13 @@ function LiveLocationCard({
   const accuracy = location.lastPosition?.coords.accuracy;
 
   return (
-    <section className="rounded-[24px] border border-[var(--bayblaze-line)] bg-white p-4 shadow-sm">
+    <Card>
       <div className="flex items-start gap-3">
         <span
           className={`grid size-11 shrink-0 place-items-center rounded-2xl ${
             tracking
-              ? "bg-green-50 text-[var(--bayblaze-green-dark)]"
-              : "bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
+              ? "bg-[var(--bb-success-soft)] text-[var(--bb-success-strong)]"
+              : "bg-[var(--bb-surface-warm)] text-[var(--bb-charcoal)]"
           }`}
         >
           {requesting ? (
@@ -45,59 +46,43 @@ function LiveLocationCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--bayblaze-green)]">
+              <p className="text-xs font-black uppercase text-[var(--bb-blaze)]">
                 Live location
               </p>
-              <h3 className="mt-1 text-lg font-black text-[var(--bayblaze-ink)]">
+              <h3 className="mt-1 text-lg font-black text-[var(--bb-charcoal)]">
                 {statusCopy}
               </h3>
             </div>
             {!tracking ? (
-              <button
-                type="button"
-                className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--bayblaze-line)] text-[var(--bayblaze-green-dark)]"
+              <Button
                 aria-label="Retry location tracking"
-                title="Retry location tracking"
                 onClick={location.retry}
+                size="icon"
+                title="Retry location tracking"
+                variant="secondary"
               >
                 <RefreshCw size={17} aria-hidden="true" />
-              </button>
+              </Button>
             ) : null}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <LocationMetric
+            <MetricCard
               label="Last sync"
               value={formatLastSyncedAt(location.lastSyncedAt)}
             />
-            <LocationMetric label="Accuracy" value={formatAccuracy(accuracy)} />
+            <MetricCard label="Accuracy" value={formatAccuracy(accuracy)} />
           </div>
           {location.error ? (
-            <p
-              className={`mt-3 rounded-2xl border px-4 py-3 text-sm font-bold ${
-                location.permissionDenied
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : "border-yellow-200 bg-yellow-50 text-yellow-800"
-              }`}
+            <InlineNotice
+              className="mt-3"
+              tone={location.permissionDenied ? "danger" : "warning"}
             >
               {location.error}
-            </p>
+            </InlineNotice>
           ) : null}
         </div>
       </div>
-    </section>
-  );
-}
-
-function LocationMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-[var(--bayblaze-cream)] px-3 py-2">
-      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--bayblaze-muted)]">
-        {label}
-      </p>
-      <p className="mt-1 truncate text-sm font-black text-[var(--bayblaze-ink)]">
-        {value}
-      </p>
-    </div>
+    </Card>
   );
 }
 
@@ -159,17 +144,17 @@ export function ActiveShiftWidget({
   };
 }) {
   return (
-    <section className="rounded-[28px] bg-[var(--bayblaze-green-dark)] p-5 text-white shadow-xl shadow-green-950/20">
+    <Card className="border-transparent" tone="dark" elevated>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-green-100">
+          <p className="text-xs font-black uppercase text-[var(--bb-blaze)]">
             Active shift
           </p>
           <h2 className="mt-2 text-3xl font-black leading-tight">
             {profile.firstName} {profile.lastName}
           </h2>
         </div>
-        <span className="grid size-12 place-items-center rounded-2xl bg-white/12">
+        <span className="grid size-12 place-items-center rounded-2xl bg-white/12 text-[var(--bb-blaze-soft)]">
           <Navigation size={24} aria-hidden="true" />
         </span>
       </div>
@@ -182,25 +167,19 @@ export function ActiveShiftWidget({
         />
       </div>
       {action ? (
-        <button
-          type="button"
-          className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border px-5 text-sm font-black uppercase shadow-sm transition disabled:opacity-70 ${
-            action.tone === "red"
-              ? "border-red-100 bg-red-50 text-red-800 hover:bg-red-100"
-              : "border-transparent bg-[var(--bayblaze-green)] text-white shadow-green-950/20 hover:bg-[#5f9138]"
-          }`}
+        <Button
+          className="mt-3"
+          fullWidth
+          loading={action.busy}
           onClick={action.onClick}
-          disabled={action.busy}
+          size="sm"
+          variant={action.tone === "red" ? "danger" : "primary"}
         >
-          {action.busy ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : action.icon ? (
-            action.icon
-          ) : null}
+          {!action.busy && action.icon ? action.icon : null}
           {action.label}
-        </button>
+        </Button>
       ) : null}
-    </section>
+    </Card>
   );
 }
 
@@ -215,9 +194,9 @@ function StatusTile({
 }) {
   return (
     <div className="rounded-2xl bg-white/12 p-3">
-      <div className="flex items-center gap-2 text-green-100">
+      <div className="flex items-center gap-2 text-[var(--bb-blaze-soft)]">
         {icon}
-        <span className="text-xs font-black uppercase tracking-[0.14em]">{label}</span>
+        <span className="text-xs font-black uppercase">{label}</span>
       </div>
       <p className="mt-2 truncate text-base font-black">{value}</p>
     </div>

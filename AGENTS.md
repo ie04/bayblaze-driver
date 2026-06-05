@@ -176,3 +176,11 @@ npm run dev
 npm run build
 npm run lint
 ```
+
+## UI Primitive Layer
+
+Reusable BayBlaze React + Tailwind primitives live in `src/components/ui`.
+Shared brand tokens live in `src/index.css` as `--bb-*` variables with Tailwind
+v4 `@theme` entries. Prefer these primitives and tokens for new driver UI
+instead of repeating raw color, shadow, radius, input, button, card, badge,
+empty/loading/error, metric, order-card, or bottom-nav class stacks.

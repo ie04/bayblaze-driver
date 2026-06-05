@@ -113,6 +113,10 @@ linked to their own UID during clock-out.
 - `bayblaze-isochronos` remains BayBlaze's backend-only delivery intelligence
   service for geocoding, routing, delivery ETA, address autocomplete,
   geographic partitioning, and Google Maps usage guardrails.
+- `bayblaze-inventory` is the staff-facing inventory PWA for routine product,
+  variant, stock count, metadata, and vehicle assignment workflows. It must act
+  through a trusted backend/Medusa boundary and must not store separate commerce
+  inventory state.
 - The driver app must not call paid Google Maps APIs directly from browser code
   and must never expose server-side Google Maps API keys.
 - Driver delivery UI should consume Medusa/order references and IsoChronos ETA

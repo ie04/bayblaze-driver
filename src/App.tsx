@@ -73,6 +73,39 @@ function App() {
           "linear-gradient(rgba(17, 19, 15, 0.18), rgba(17, 19, 15, 0.34)), url('/images/tampa-bay-area-1980-map.jpg')",
       }
     : undefined;
+  let screenKey = "loading";
+  let screen = <CenteredLoader label="Loading driver access" />;
+
+  if (!authLoading && !authUser) {
+    screenKey = "login";
+    screen = (
+      <AuthPanel
+        onLogin={(email, password) =>
+          signInWithEmailAndPassword(auth, email, password).then(() => undefined)
+        }
+      />
+    );
+  } else if (authUser && profile === undefined) {
+    screenKey = "loading-profile";
+  } else if (authUser && !profile?.onboardingComplete) {
+    screenKey = "profile-setup";
+    screen = <ProfileSetup user={authUser} profile={profile ?? null} />;
+  } else if (profile && activeView === "profile") {
+    screenKey = "profile";
+    screen = <DriverProfileScreen profile={profile} onLogout={() => void signOut(auth)} />;
+  } else if (profile && activeView === "deliveries") {
+    screenKey = "deliveries";
+    screen = <DeliveriesScreen />;
+  } else if (profile && !profile.activeVehicleId) {
+    screenKey = "vehicle-link";
+    screen = <VehicleLink profile={profile} />;
+  } else if (profile && !profile.clockedIn) {
+    screenKey = "clock-in";
+    screen = <ClockInPanel profile={profile} />;
+  } else if (profile) {
+    screenKey = "dashboard";
+    screen = <DriverDashboard profile={profile} />;
+  }
 
   return (
     <main className={shellClassName} style={shellStyle}>
@@ -87,27 +120,9 @@ function App() {
           isLoginScreen ? "mx-auto w-full max-w-md justify-center" : ""
         }`}
       >
-        {authLoading || (authUser && profile === undefined) ? (
-          <CenteredLoader label="Loading driver access" />
-        ) : !authUser ? (
-          <AuthPanel
-            onLogin={(email, password) =>
-              signInWithEmailAndPassword(auth, email, password).then(() => undefined)
-            }
-          />
-        ) : !profile?.onboardingComplete ? (
-          <ProfileSetup user={authUser} profile={profile ?? null} />
-        ) : activeView === "profile" ? (
-          <DriverProfileScreen profile={profile} onLogout={() => void signOut(auth)} />
-        ) : activeView === "deliveries" ? (
-          <DeliveriesScreen />
-        ) : !profile.activeVehicleId ? (
-          <VehicleLink profile={profile} />
-        ) : !profile.clockedIn ? (
-          <ClockInPanel profile={profile} />
-        ) : (
-          <DriverDashboard profile={profile} />
-        )}
+        <div className="page-transition flex flex-1 flex-col" key={screenKey}>
+          {screen}
+        </div>
       </section>
 
       {showProfileChrome ? (

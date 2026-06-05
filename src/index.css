@@ -178,3 +178,19 @@ button {
     animation: none;
   }
 }
+
+
+@media (max-width: 767px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+    touch-action: pan-y;
+  }
+
+  .bb-no-horizontal-drag,
+  .bb-no-horizontal-drag * {
+    max-width: 100%;
+  }
+}

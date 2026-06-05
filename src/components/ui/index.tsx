@@ -134,7 +134,7 @@ export function Badge({
   return (
     <span
       className={cx(
-        "inline-flex min-h-7 items-center rounded-full border px-3 py-1 text-xs font-black uppercase",
+        "inline-flex min-h-7 max-w-full min-w-0 items-center rounded-full border px-2.5 py-1 text-xs font-black uppercase",
         toneClasses[tone],
         className,
       )}
@@ -161,7 +161,7 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
 
 export function Input({ className, icon, label, ...props }: FieldProps) {
   return (
-    <label className={cx("block", className)}>
+    <label className={cx("block min-w-0 max-w-full", className)}>
       {label ? (
         <span className="mb-2 block text-xs font-black uppercase text-[var(--bb-muted)]">
           {label}
@@ -189,7 +189,7 @@ export function Textarea({
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string }) {
   return (
-    <label className={cx("block", className)}>
+    <label className={cx("block min-w-0 max-w-full", className)}>
       {label ? (
         <span className="mb-2 block text-xs font-black uppercase text-[var(--bb-muted)]">
           {label}
@@ -212,7 +212,7 @@ export function Select({
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement> & { label?: string }) {
   return (
-    <label className={cx("block", className)}>
+    <label className={cx("block min-w-0 max-w-full", className)}>
       {label ? (
         <span className="mb-2 block text-xs font-black uppercase text-[var(--bb-muted)]">
           {label}
@@ -340,7 +340,7 @@ export function BottomNav({
   }>;
 }) {
   return (
-    <nav className="grid grid-cols-3 items-center gap-2" aria-label="Driver navigation">
+    <nav className="grid w-full min-w-0 grid-cols-3 items-center gap-2 overflow-hidden" aria-label="Driver navigation">
       <div aria-hidden="true" />
       {items.map((item) => (
         <div className="flex justify-center" key={item.label}>

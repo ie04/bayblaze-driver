@@ -241,7 +241,7 @@ function App() {
       }
     >
       <section
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 py-5 ${
+        className={`w-full min-w-0 max-w-full touch-pan-y flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5 ${
           isLoginScreen ? "mx-auto w-full max-w-md justify-center" : ""
         }`}
       >

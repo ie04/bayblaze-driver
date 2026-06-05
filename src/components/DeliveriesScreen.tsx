@@ -208,7 +208,7 @@ function PriorityDeliveryCard({
               </>
             )}
           </div>
-          <ActionBar columns={3}>
+          <ActionBar columns={3} className="max-w-full overflow-hidden">
             <Button fullWidth onClick={onOpen} size="sm">
               Start
             </Button>

@@ -99,7 +99,7 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
           <ShieldCheck size={28} aria-hidden="true" />
         </div>
         <h2 className="mt-5 text-3xl font-black leading-tight text-[var(--bayblaze-ink)]">
-          Driver access
+          Sign In
         </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--bayblaze-muted)]">
           Use your approved BayBlaze driver email.

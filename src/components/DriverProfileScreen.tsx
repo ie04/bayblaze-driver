@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { LogOut, Mail, Phone, UserRound } from "lucide-react";
+import { LogOut, Mail, Phone, Power, UserRound } from "lucide-react";
 
 import { ActiveShiftWidget } from "./DriverDashboard";
 import { clockOutDriver } from "../lib/driverData";
@@ -32,27 +32,6 @@ export function DriverProfileScreen({
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <ActiveShiftWidget
-        profile={profile}
-        action={
-          profile.clockedIn
-            ? {
-                busy: clockingOut,
-                label: "Clock Out",
-                onClick: () => void handleClockOut(),
-                tone: "red",
-              }
-            : {
-                label: "Clock In",
-                onClick: () => {
-                  setError("");
-                  onClockIn();
-                },
-                tone: "green",
-              }
-        }
-      />
-
       <section className="rounded-[28px] border border-[var(--bayblaze-line)] bg-white p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-[24px] bg-[var(--bayblaze-cream)] text-xl font-black text-[var(--bayblaze-green-dark)]">
@@ -89,6 +68,28 @@ export function DriverProfileScreen({
         </p>
       </section>
 
+      <ActiveShiftWidget
+        profile={profile}
+        action={
+          profile.clockedIn
+            ? {
+                busy: clockingOut,
+                icon: <Power size={18} aria-hidden="true" />,
+                label: "Clock Out",
+                onClick: () => void handleClockOut(),
+                tone: "red",
+              }
+            : {
+                label: "Clock In",
+                onClick: () => {
+                  setError("");
+                  onClockIn();
+                },
+                tone: "green",
+              }
+        }
+      />
+
       {error ? (
         <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
           {error}
@@ -97,7 +98,7 @@ export function DriverProfileScreen({
 
       <button
         type="button"
-        className="mt-auto flex h-14 items-center justify-center gap-2 rounded-full bg-red-600 px-6 text-sm font-black uppercase text-white shadow-lg shadow-red-900/20 transition hover:bg-red-700"
+        className="mt-auto flex h-14 items-center justify-center gap-2 rounded-full border border-red-100 bg-red-50 px-6 text-sm font-black uppercase text-red-800 shadow-sm transition hover:bg-red-100"
         onClick={onLogout}
       >
         <LogOut size={18} aria-hidden="true" />

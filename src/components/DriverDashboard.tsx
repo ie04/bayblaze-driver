@@ -71,6 +71,7 @@ export function ActiveShiftWidget({
   profile: DriverProfile;
   action?: {
     busy?: boolean;
+    icon?: ReactNode;
     label: string;
     onClick: () => void;
     tone: "green" | "red";
@@ -102,16 +103,18 @@ export function ActiveShiftWidget({
       {action ? (
         <button
           type="button"
-          className={`mt-3 flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-black uppercase shadow-lg transition disabled:opacity-70 ${
+          className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border px-5 text-sm font-black uppercase shadow-sm transition disabled:opacity-70 ${
             action.tone === "red"
-              ? "bg-red-600 text-white shadow-red-950/20 hover:bg-red-700"
-              : "bg-[var(--bayblaze-green)] text-white shadow-green-950/20 hover:bg-[#5f9138]"
+              ? "border-red-100 bg-red-50 text-red-800 hover:bg-red-100"
+              : "border-transparent bg-[var(--bayblaze-green)] text-white shadow-green-950/20 hover:bg-[#5f9138]"
           }`}
           onClick={action.onClick}
           disabled={action.busy}
         >
           {action.busy ? (
-            <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : action.icon ? (
+            action.icon
           ) : null}
           {action.label}
         </button>

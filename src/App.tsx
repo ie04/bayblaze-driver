@@ -188,6 +188,11 @@ function App() {
 
   return (
     <AppShell
+      className={
+        isLoginScreen
+          ? undefined
+          : "h-svh overflow-hidden md:h-[calc(100svh-3rem)]"
+      }
       login={isLoginScreen}
       style={shellStyle}
       header={
@@ -233,7 +238,7 @@ function App() {
       }
     >
       <section
-        className={`flex min-h-0 flex-1 flex-col px-5 py-5 ${
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 py-5 ${
           isLoginScreen ? "mx-auto w-full max-w-md justify-center" : ""
         }`}
       >

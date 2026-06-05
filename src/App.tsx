@@ -204,7 +204,7 @@ function App() {
       }
       footer={
         showProfileChrome ? (
-          <footer className="border-t border-[var(--bb-line)] bg-white/95 px-5 py-3 backdrop-blur">
+          <footer className="sticky bottom-0 z-40 shrink-0 border-t border-[var(--bb-line)] bg-white/95 px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur">
             <BottomNav
               items={[
                 {

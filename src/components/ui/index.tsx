@@ -109,7 +109,7 @@ export function Card({
   return (
     <Component
       className={cx(
-        "rounded-[var(--bb-radius-card)] border p-5",
+        "min-w-0 overflow-hidden rounded-[var(--bb-radius-card)] border p-5",
         elevated ? "shadow-[var(--bb-shadow-card)]" : "shadow-[var(--bb-shadow-soft)]",
         interactive && "transition hover:border-[var(--bb-blaze)]",
         toneClass,
@@ -151,7 +151,7 @@ export function StatusBadge({
   status: ReactNode;
   tone?: Tone;
 }) {
-  return <Badge tone={tone}>{status}</Badge>;
+  return <Badge className="max-w-[6.5rem] shrink-0 truncate" tone={tone}>{status}</Badge>;
 }
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -275,7 +275,7 @@ export function PageHeader({
   subtitle?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className="flex min-w-0 items-start justify-between gap-2">
       <div className="min-w-0">
         {eyebrow ? (
           <p className="text-xs font-black uppercase text-[var(--bb-blaze)]">
@@ -517,7 +517,7 @@ export function OrderCard({
 }) {
   const content = (
     <>
-      <div className="flex min-w-0 items-start gap-3">
+      <div className="flex min-w-0 max-w-full items-start gap-3 overflow-hidden">
         {icon ? (
           <span
             className={cx(
@@ -532,7 +532,7 @@ export function OrderCard({
           </span>
         ) : null}
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0">
               <p
                 className={cx(
@@ -564,7 +564,7 @@ export function OrderCard({
 
   if (onClick) {
     return (
-      <button className="w-full text-left" onClick={onClick} type="button">
+      <button className="w-full min-w-0 overflow-hidden text-left" onClick={onClick} type="button">
         <Card as="div" className={cardClassName} interactive>
           {content}
         </Card>
@@ -589,7 +589,7 @@ export function ActionBar({
   columns?: 2 | 3;
 }) {
   return (
-    <div className={cx("grid gap-3", columns === 3 ? "grid-cols-3" : "grid-cols-2", className)}>
+    <div className={cx("grid min-w-0 gap-2", columns === 3 ? "grid-cols-[repeat(3,minmax(0,1fr))]" : "grid-cols-[repeat(2,minmax(0,1fr))]", className)}>
       {children}
     </div>
   );

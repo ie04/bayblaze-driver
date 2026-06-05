@@ -64,12 +64,12 @@ export function DeliveriesScreen({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden">
       <PageHeader
         title="Delivery Route"
         subtitle={currentStop ? "Priority stop is locked until completed." : undefined}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               aria-label="Sync delivery route"
               disabled={syncing}
@@ -104,8 +104,8 @@ export function DeliveriesScreen({
           Delivery assignments from Medusa and IsoChronos scoring will appear here.
         </EmptyState>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="grid gap-4 pb-4">
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">
+          <div className="grid min-w-0 gap-4 pb-4">
             <RouteStatusCard
               currentStop={currentStop}
               nextStop={nextStop}
@@ -169,7 +169,7 @@ function RouteStatusCard({
         <ShieldCheck size={15} aria-hidden="true" />
         Route status
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid min-w-0 grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
         <MetricCard label="Stops" value={stopCount} />
         <MetricCard label="Current" value={currentStop?.eta ?? "Ready"} />
         <MetricCard label="Next" value={nextStop?.eta ?? "None"} />
@@ -195,7 +195,7 @@ function PriorityDeliveryCard({
       statusTone="brand"
       meta={
         <div className="grid gap-3">
-          <div className="flex items-center gap-2 text-sm font-bold text-[var(--bb-muted)]">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-[var(--bb-muted)]">
             {delivery.items.some((item) => item.inventoryLocation === "warehouse") ? (
               <>
                 <Warehouse size={16} aria-hidden="true" />

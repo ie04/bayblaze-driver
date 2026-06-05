@@ -150,6 +150,11 @@ linked to their own UID during clock-out.
   `ISOCHRONOS_API_URL`, `ISOCHRONOS_ADMIN_TOKEN`,
   `ISOCHRONOS_QUEUE_SCORE_PATH`, and `ISOCHRONOS_DRIVER_LOCATION_PATH`.
   Never expose these through `VITE_` frontend variables.
+- Firebase Functions send `MEDUSA_ADMIN_API_TOKEN` to Medusa as both
+  `Authorization: Bearer ...` and `x-bayblaze-service-token`. Custom Medusa
+  driver integration routes under `/admin` must export `AUTHENTICATE = false`
+  and validate `x-bayblaze-service-token` themselves; otherwise Medusa's default
+  admin auth rejects driver queue sync with HTTP 401 before route code runs.
 - Current production backend service URLs:
   `MEDUSA_BACKEND_URL=https://api.bayblaze.net` and
   `ISOCHRONOS_API_URL=http://api.bayblaze.net:3030`.

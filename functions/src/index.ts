@@ -210,6 +210,7 @@ type DriverDeliveryItem = {
 
 type DriverDeliveryStop = {
   orderId: string;
+  customerPhone?: string;
   customerName: string;
   customerAddress: string;
   status: "current" | "locked" | "scored";
@@ -421,17 +422,11 @@ async function fetchMedusaDriverQueue(uid: string): Promise<DriverDeliveryQueue>
 
   const url = new URL(pathTemplate.replace("{uid}", encodeURIComponent(uid)), baseUrl);
   const response = await fetch(url, {
-    headers: {
-      authorization: `Bearer ${token}`,
-      accept: "application/json",
-    },
+    headers: buildMedusaServiceHeaders(token, "GET"),
   });
 
   if (!response.ok) {
-    throw new HttpsError(
-      "unavailable",
-      `Medusa queue sync failed with HTTP ${response.status}.`,
-    );
+    throw medusaSyncError("queue sync", response.status);
   }
 
   const payload = (await response.json()) as unknown;
@@ -508,10 +503,7 @@ async function notifyMedusaDeliveryAttempt(log: DeliveryAttemptLog) {
 
   const response = await fetch(new URL(path, baseUrl), {
     method: "POST",
-    headers: {
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-    },
+    headers: buildMedusaServiceHeaders(token, "POST"),
     body: JSON.stringify(log),
   });
 
@@ -523,6 +515,35 @@ async function notifyMedusaDeliveryAttempt(log: DeliveryAttemptLog) {
       status: response.status,
     });
   }
+}
+
+function buildMedusaServiceHeaders(token: string, method: "GET" | "POST") {
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${token}`,
+    "x-bayblaze-service-token": token,
+  };
+
+  if (method === "GET") {
+    headers.accept = "application/json";
+  } else {
+    headers["content-type"] = "application/json";
+  }
+
+  return headers;
+}
+
+function medusaSyncError(action: string, status: number) {
+  if (status === 401) {
+    return new HttpsError(
+      "permission-denied",
+      "Medusa rejected the driver service token. Confirm the BayBlaze Medusa driver route opts out of default /admin authentication and validates x-bayblaze-service-token.",
+    );
+  }
+
+  return new HttpsError(
+    "unavailable",
+    `Medusa ${action} failed with HTTP ${status}.`,
+  );
 }
 
 async function notifyIsoChronosLocation(snapshot: DriverLocationSnapshot) {
@@ -573,6 +594,11 @@ function normalizeDeliveryStop(value: unknown, index: number): DriverDeliverySto
 
   return {
     orderId: readString(record.orderId, record.id, `order-${index}`),
+    customerPhone: readOptionalString(
+      record.customerPhone,
+      record.phone,
+      asRecord(record.customer)?.phone,
+    ),
     customerName: readString(record.customerName, asRecord(record.customer)?.name, "Customer"),
     customerAddress: readString(record.customerAddress, record.shippingAddress, ""),
     status: index === 0 ? "current" : index === 1 ? "locked" : "scored",
@@ -621,4 +647,9 @@ function readString(...values: unknown[]) {
   }
 
   return "";
+}
+
+function readOptionalString(...values: unknown[]) {
+  const value = readString(...values);
+  return value || undefined;
 }

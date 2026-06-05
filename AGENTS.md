@@ -167,11 +167,12 @@ linked to their own UID during clock-out.
 - Stable VPS service pointers live under `/home/codex-deploy/bayblaze`:
   IsoChronos current checkout at
   `/home/codex-deploy/bayblaze/isochronos/current`, IsoChronos runner at
-  `/home/codex-deploy/bayblaze/isochronos/runner`, and Medusa current checkout
-  at `/home/codex-deploy/bayblaze/medusa/current`.
+  `/home/codex-deploy/bayblaze/isochronos/runner`. The active Medusa checkout
+  and compose project are under `/opt/bayblaze/medusa`, owned by
+  `github-runner`.
 - Running VPS Docker Compose projects: `isochronos` uses
   `/home/codex-deploy/bayblaze/isochronos/current/docker-compose.prod.yml`;
-  `medusa` uses `/home/codex-deploy/bayblaze/medusa/current/docker-compose.prod.yml`.
+  `medusa` uses `/opt/bayblaze/medusa/docker-compose.yml`.
 
 ## Local Commands
 

@@ -1,5 +1,6 @@
 import type { User } from "firebase/auth";
 import {
+  addDoc,
   collection,
   deleteField,
   doc,
@@ -17,6 +18,14 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import { db, storage } from "./firebase";
 import type { DriverProfile, VehicleRecord } from "./types";
+
+export type DeliveryAttemptLogType =
+  | "warehouse_arrival"
+  | "customer_arrival"
+  | "id_photo"
+  | "merchant_invoice_photo"
+  | "cancelled"
+  | "completed";
 
 export function subscribeDriverProfile(
   uid: string,
@@ -201,6 +210,66 @@ export async function updateDriverLocation(profile: DriverProfile) {
     },
     { merge: true },
   );
+}
+
+export async function logDeliveryAttempt({
+  uid,
+  orderId,
+  type,
+  note,
+  photoPath,
+  photoUrl,
+}: {
+  uid: string;
+  orderId: string;
+  type: DeliveryAttemptLogType;
+  note?: string;
+  photoPath?: string;
+  photoUrl?: string;
+}) {
+  await addDoc(collection(db, "delivery_attempt_logs"), {
+    uid,
+    orderId,
+    type,
+    note: note?.trim() || null,
+    photoPath: photoPath ?? null,
+    photoUrl: photoUrl ?? null,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function uploadDeliveryAttemptPhoto({
+  uid,
+  orderId,
+  type,
+  photoFile,
+}: {
+  uid: string;
+  orderId: string;
+  type: Extract<DeliveryAttemptLogType, "id_photo" | "merchant_invoice_photo">;
+  photoFile: File;
+}) {
+  const extension = photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
+  const photoPath = `delivery-attempt-photos/${uid}/${orderId}/${type}-${Date.now()}.${extension}`;
+  const photoRef = ref(storage, photoPath);
+
+  await uploadBytes(photoRef, photoFile, {
+    contentType: photoFile.type || "image/jpeg",
+    customMetadata: {
+      driverUid: uid,
+      orderId,
+      type,
+    },
+  });
+
+  const photoUrl = await getDownloadURL(photoRef);
+  await logDeliveryAttempt({
+    uid,
+    orderId,
+    type,
+    photoPath,
+    photoUrl,
+  });
 }
 
 export function formatVehicle(vehicle: VehicleRecord) {

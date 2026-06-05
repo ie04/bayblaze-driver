@@ -57,7 +57,11 @@ const statusMeta = {
   },
 } satisfies Record<QueueStatus, { icon: ReactNode; title: string }>;
 
-export function DeliveriesScreen() {
+export function DeliveriesScreen({
+  onOpenCurrentDelivery,
+}: {
+  onOpenCurrentDelivery: () => void;
+}) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
@@ -76,6 +80,7 @@ export function DeliveriesScreen() {
               delivery={delivery}
               key={`${delivery.customerName}-${index}`}
               muted={index > 1}
+              onClick={index === 0 ? onOpenCurrentDelivery : undefined}
             />
           ))}
         </div>
@@ -87,21 +92,26 @@ export function DeliveriesScreen() {
 function DeliveryPill({
   delivery,
   muted,
+  onClick,
 }: {
   delivery: QueueDelivery;
   muted: boolean;
+  onClick?: () => void;
 }) {
   const meta = statusMeta[delivery.status];
 
   return (
-    <div
+    <button
+      type="button"
       className={`rounded-[24px] border p-4 shadow-sm ${
         muted
           ? "border-slate-200 bg-slate-50 text-slate-400 opacity-70"
           : delivery.status === "current"
             ? "border-[var(--bayblaze-green)] bg-white text-[var(--bayblaze-ink)]"
             : "border-[var(--bayblaze-line)] bg-white text-[var(--bayblaze-ink)]"
-      }`}
+      } ${onClick ? "text-left transition hover:border-[var(--bayblaze-green)]" : "text-left"}`}
+      disabled={!onClick}
+      onClick={onClick}
     >
       <div className="flex min-w-0 items-center gap-3">
         <span
@@ -133,6 +143,6 @@ function DeliveryPill({
           </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

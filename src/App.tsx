@@ -9,11 +9,13 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebas
 import { AuthPanel } from "./components/AuthPanel";
 import { ClockInPanel } from "./components/ClockInPanel";
 import { DeliveriesScreen } from "./components/DeliveriesScreen";
+import { DeliveryWorkflowScreen } from "./components/DeliveryWorkflowScreen";
 import { DriverDashboard } from "./components/DriverDashboard";
 import { DriverProfileScreen } from "./components/DriverProfileScreen";
 import { ProfileSetup } from "./components/ProfileSetup";
 import { VehicleLink } from "./components/VehicleLink";
 import { auth, firebaseReady } from "./lib/firebase";
+import { previewDeliveryOrder } from "./lib/deliveryPreview";
 import { subscribeDriverProfile } from "./lib/driverData";
 import type { DriverProfile } from "./lib/types";
 
@@ -21,9 +23,9 @@ function App() {
   const [authUser, setAuthUser] = useState(auth.currentUser);
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
   const [authLoading, setAuthLoading] = useState(firebaseReady);
-  const [activeView, setActiveView] = useState<"dashboard" | "deliveries" | "profile">(
-    "dashboard",
-  );
+  const [activeView, setActiveView] = useState<
+    "dashboard" | "deliveries" | "delivery-workflow" | "profile"
+  >("dashboard");
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -101,7 +103,18 @@ function App() {
     );
   } else if (profile && activeView === "deliveries") {
     screenKey = "deliveries";
-    screen = <DeliveriesScreen />;
+    screen = (
+      <DeliveriesScreen onOpenCurrentDelivery={() => setActiveView("delivery-workflow")} />
+    );
+  } else if (profile && activeView === "delivery-workflow") {
+    screenKey = "delivery-workflow";
+    screen = (
+      <DeliveryWorkflowScreen
+        order={previewDeliveryOrder}
+        profile={profile}
+        onReturnToRoute={() => setActiveView("deliveries")}
+      />
+    );
   } else if (profile && !profile.activeVehicleId) {
     screenKey = "vehicle-link";
     screen = <VehicleLink profile={profile} />;

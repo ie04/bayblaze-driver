@@ -64,6 +64,10 @@ Suggested collections:
   driver location is enabled.
 - `driver_signup_codes/{emailKey}`: backend-owned short-lived verification
   challenge state. Store hashed codes only, never raw codes.
+- `delivery_attempt_logs/{logId}`: timestamped driver delivery attempt events
+  such as warehouse/customer arrival, ID photo, merchant invoice photo,
+  cancellations, and completions. Driver clients may create logs for their own
+  UID only.
 
 Firestore rules keep vehicle records dispatch-owned, but signed-in drivers may
 update only `linkedDriverUid`, `linkedAt`, and `updatedAt` to claim an active,
@@ -84,6 +88,14 @@ linked to their own UID during clock-out.
   current stop, and the first two deliveries (current and next) must remain
   locked. Queued deliveries after the second stop may be reordered by backend
   scoring, which recalculates when the current order is marked complete.
+- Delivery execution steps are discrete and consistent for every order:
+  warehouse pickup when any item is not already in the vehicle, add items to box
+  with item/variant/quantity confirmation and invoice slip, drive to customer,
+  ID checklist, ID photo, merchant invoice signature, merchant invoice photo,
+  handoff, completion celebration, then return to the delivery route.
+- Delivery attempt photos are stored under
+  `delivery-attempt-photos/{uid}/{orderId}/...` and referenced from
+  `delivery_attempt_logs`.
 
 ## Cross-Repo Boundaries
 

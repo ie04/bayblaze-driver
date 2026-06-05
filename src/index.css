@@ -71,3 +71,57 @@ button {
     animation: none;
   }
 }
+
+.confetti-burst,
+.confetti-burst::before,
+.confetti-burst::after {
+  position: absolute;
+  inset: 18% auto auto 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  animation: confetti-pop 900ms ease-out both;
+  box-shadow:
+    -120px 12px #74a84a,
+    -86px -42px #ef4444,
+    -48px 28px #facc15,
+    -10px -70px #38bdf8,
+    34px 18px #74a84a,
+    74px -38px #ef4444,
+    116px 6px #facc15;
+  content: "";
+}
+
+.confetti-burst::before {
+  animation-delay: 90ms;
+  transform: rotate(24deg);
+}
+
+.confetti-burst::after {
+  animation-delay: 160ms;
+  transform: rotate(-18deg);
+}
+
+@keyframes confetti-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 36px) scale(0.4);
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, -42px) scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-burst,
+  .confetti-burst::before,
+  .confetti-burst::after {
+    animation: none;
+  }
+}

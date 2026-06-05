@@ -196,9 +196,12 @@ function App() {
       login={isLoginScreen}
       style={shellStyle}
       header={
-        <header className="border-b border-[var(--bb-line)] bg-white/95 px-5 pb-4 pt-5 backdrop-blur">
-          <h1 className="text-center text-xl font-black uppercase leading-tight text-[var(--bb-charcoal)]">
-            DRIVER DASHBOARD
+        <header className="sticky top-0 z-40 shrink-0 border-b border-[var(--bb-line)] bg-white/95 px-5 pb-4 pt-[calc(1.25rem+env(safe-area-inset-top))] backdrop-blur">
+          <p className="text-center text-xs font-black uppercase tracking-[0.28em] text-[var(--bb-blaze)]">
+            BAYBLAZE
+          </p>
+          <h1 className="mt-1 text-center text-lg font-black uppercase leading-tight text-[var(--bb-charcoal)]">
+            DELIVERY DASHBOARD
           </h1>
         </header>
       }

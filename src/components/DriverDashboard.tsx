@@ -1,16 +1,16 @@
 import { type ReactNode, useState } from "react";
-import { Clock, Loader2, MapPin, Navigation, Power, Route, Truck } from "lucide-react";
+import { Clock, Loader2, MapPin, Navigation, Truck } from "lucide-react";
 
-import { clockOutDriver, updateDriverLocation } from "../lib/driverData";
+import { updateDriverLocation } from "../lib/driverData";
 import type { DriverProfile } from "../lib/types";
 
 export function DriverDashboard({ profile }: { profile: DriverProfile }) {
-  const [busyAction, setBusyAction] = useState<"location" | "clockOut" | null>(null);
+  const [sharingLocation, setSharingLocation] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
   async function handleLocation() {
-    setBusyAction("location");
+    setSharingLocation(true);
     setNotice("");
     setError("");
 
@@ -20,20 +20,7 @@ export function DriverDashboard({ profile }: { profile: DriverProfile }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Location update failed.");
     } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleClockOut() {
-    setBusyAction("clockOut");
-    setNotice("");
-    setError("");
-
-    try {
-      await clockOutDriver(profile);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Clock-out failed.");
-      setBusyAction(null);
+      setSharingLocation(false);
     }
   }
 
@@ -41,15 +28,15 @@ export function DriverDashboard({ profile }: { profile: DriverProfile }) {
     <div className="flex flex-1 flex-col gap-5">
       <ActiveShiftWidget profile={profile} />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3">
         <button
           type="button"
           className="flex min-h-28 flex-col justify-between rounded-[24px] border border-[var(--bayblaze-line)] bg-white p-4 text-left shadow-sm"
           onClick={() => void handleLocation()}
-          disabled={busyAction !== null}
+          disabled={sharingLocation}
         >
           <span className="grid size-10 place-items-center rounded-2xl bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]">
-            {busyAction === "location" ? (
+            {sharingLocation ? (
               <Loader2 className="size-5 animate-spin" aria-hidden="true" />
             ) : (
               <MapPin size={20} aria-hidden="true" />
@@ -58,22 +45,6 @@ export function DriverDashboard({ profile }: { profile: DriverProfile }) {
           <span className="text-base font-black text-[var(--bayblaze-ink)]">
             Share location
           </span>
-        </button>
-
-        <button
-          type="button"
-          className="flex min-h-28 flex-col justify-between rounded-[24px] border border-red-100 bg-red-50 p-4 text-left shadow-sm"
-          onClick={() => void handleClockOut()}
-          disabled={busyAction !== null}
-        >
-          <span className="grid size-10 place-items-center rounded-2xl bg-white text-red-700">
-            {busyAction === "clockOut" ? (
-              <Loader2 className="size-5 animate-spin" aria-hidden="true" />
-            ) : (
-              <Power size={20} aria-hidden="true" />
-            )}
-          </span>
-          <span className="text-base font-black text-red-800">Clock out</span>
         </button>
       </div>
 
@@ -89,32 +60,6 @@ export function DriverDashboard({ profile }: { profile: DriverProfile }) {
         </p>
       ) : null}
 
-      <section className="flex flex-1 flex-col rounded-[28px] border border-[var(--bayblaze-line)] bg-white p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--bayblaze-green)]">
-              Deliveries
-            </p>
-            <h3 className="mt-1 text-xl font-black text-[var(--bayblaze-ink)]">
-              Current route
-            </h3>
-          </div>
-          <span className="grid size-11 place-items-center rounded-2xl bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]">
-            <Route size={22} aria-hidden="true" />
-          </span>
-        </div>
-
-        <div className="grid flex-1 place-items-center py-10 text-center">
-          <div>
-            <p className="text-lg font-black text-[var(--bayblaze-ink)]">
-              No assigned deliveries
-            </p>
-            <p className="mt-1 text-sm leading-6 text-[var(--bayblaze-muted)]">
-              Route assignments will appear here.
-            </p>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

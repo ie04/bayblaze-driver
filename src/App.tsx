@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Loader2,
+  Route,
 } from "lucide-react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 import { AuthPanel } from "./components/AuthPanel";
 import { ClockInPanel } from "./components/ClockInPanel";
+import { DeliveriesScreen } from "./components/DeliveriesScreen";
 import { DriverDashboard } from "./components/DriverDashboard";
 import { DriverProfileScreen } from "./components/DriverProfileScreen";
 import { ProfileSetup } from "./components/ProfileSetup";
@@ -19,7 +21,9 @@ function App() {
   const [authUser, setAuthUser] = useState(auth.currentUser);
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
   const [authLoading, setAuthLoading] = useState(firebaseReady);
-  const [activeView, setActiveView] = useState<"dashboard" | "profile">("dashboard");
+  const [activeView, setActiveView] = useState<"dashboard" | "deliveries" | "profile">(
+    "dashboard",
+  );
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -95,6 +99,8 @@ function App() {
           <ProfileSetup user={authUser} profile={profile ?? null} />
         ) : activeView === "profile" ? (
           <DriverProfileScreen profile={profile} onLogout={() => void signOut(auth)} />
+        ) : activeView === "deliveries" ? (
+          <DeliveriesScreen />
         ) : !profile.activeVehicleId ? (
           <VehicleLink profile={profile} />
         ) : !profile.clockedIn ? (
@@ -106,28 +112,58 @@ function App() {
 
       {showProfileChrome ? (
         <footer className="border-t border-[var(--bayblaze-line)] bg-white/95 px-5 py-3 backdrop-blur">
-          <div className="flex justify-center">
-            <button
-              type="button"
-              className={`grid size-12 place-items-center overflow-hidden rounded-full border text-sm font-black transition ${
-                activeView === "profile"
-                  ? "border-[var(--bayblaze-green)] bg-green-50 text-[var(--bayblaze-green-dark)] shadow-lg shadow-green-900/10"
-                  : "border-[var(--bayblaze-line)] bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
-              }`}
-              aria-label={activeView === "profile" ? "Return to dashboard" : "Open driver profile"}
-              title={activeView === "profile" ? "Dashboard" : "Driver profile"}
-              onClick={() =>
-                setActiveView((current) =>
-                  current === "profile" ? "dashboard" : "profile",
-                )
-              }
-            >
-              {profile?.profilePhotoUrl ? (
-                <img src={profile.profilePhotoUrl} alt="" className="size-full object-cover" />
-              ) : (
-                initials
-              )}
-            </button>
+          <div className="grid grid-cols-3 items-center">
+            <div aria-hidden="true" />
+            <div className="flex justify-center">
+              <button
+                type="button"
+                className={`grid size-12 place-items-center rounded-full border transition ${
+                  activeView === "deliveries"
+                    ? "border-[var(--bayblaze-green)] bg-green-50 text-[var(--bayblaze-green-dark)] shadow-lg shadow-green-900/10"
+                    : "border-[var(--bayblaze-line)] bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
+                }`}
+                aria-label={
+                  activeView === "deliveries" ? "Return to dashboard" : "Open deliveries"
+                }
+                title={activeView === "deliveries" ? "Dashboard" : "Deliveries"}
+                onClick={() =>
+                  setActiveView((current) =>
+                    current === "deliveries" ? "dashboard" : "deliveries",
+                  )
+                }
+              >
+                <Route size={22} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                className={`grid size-12 place-items-center overflow-hidden rounded-full border text-sm font-black transition ${
+                  activeView === "profile"
+                    ? "border-[var(--bayblaze-green)] bg-green-50 text-[var(--bayblaze-green-dark)] shadow-lg shadow-green-900/10"
+                    : "border-[var(--bayblaze-line)] bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
+                }`}
+                aria-label={
+                  activeView === "profile" ? "Return to dashboard" : "Open driver profile"
+                }
+                title={activeView === "profile" ? "Dashboard" : "Driver profile"}
+                onClick={() =>
+                  setActiveView((current) =>
+                    current === "profile" ? "dashboard" : "profile",
+                  )
+                }
+              >
+                {profile?.profilePhotoUrl ? (
+                  <img
+                    src={profile.profilePhotoUrl}
+                    alt=""
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
+              </button>
+            </div>
           </div>
         </footer>
       ) : null}

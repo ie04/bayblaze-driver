@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
-import { LogOut, Mail, Phone, UserRound } from "lucide-react";
+import { useState } from "react";
+import { Loader2, LogOut, Mail, Phone, Power, UserRound } from "lucide-react";
 
 import { ActiveShiftWidget } from "./DriverDashboard";
+import { clockOutDriver } from "../lib/driverData";
 import type { DriverProfile } from "../lib/types";
 
 export function DriverProfileScreen({
@@ -11,6 +13,21 @@ export function DriverProfileScreen({
   profile: DriverProfile;
   onLogout: () => void;
 }) {
+  const [clockingOut, setClockingOut] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleClockOut() {
+    setClockingOut(true);
+    setError("");
+
+    try {
+      await clockOutDriver(profile);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Clock-out failed.");
+      setClockingOut(false);
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-5">
       <ActiveShiftWidget profile={profile} />
@@ -50,6 +67,28 @@ export function DriverProfileScreen({
           {profile.bio}
         </p>
       </section>
+
+      <button
+        type="button"
+        className="flex min-h-28 flex-col justify-between rounded-[24px] border border-red-100 bg-red-50 p-4 text-left shadow-sm transition disabled:opacity-60"
+        onClick={() => void handleClockOut()}
+        disabled={clockingOut}
+      >
+        <span className="grid size-10 place-items-center rounded-2xl bg-white text-red-700">
+          {clockingOut ? (
+            <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+          ) : (
+            <Power size={20} aria-hidden="true" />
+          )}
+        </span>
+        <span className="text-base font-black text-red-800">Clock out</span>
+      </button>
+
+      {error ? (
+        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          {error}
+        </p>
+      ) : null}
 
       <button
         type="button"

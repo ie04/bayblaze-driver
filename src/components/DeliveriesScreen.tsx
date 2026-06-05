@@ -1,26 +1,65 @@
-import { Lock, Route, Sparkles } from "lucide-react";
+import type { ReactNode } from "react";
+import { Lock, Navigation, Route, Sparkles } from "lucide-react";
+
+type QueueStatus = "current" | "locked" | "scored";
+
+type QueueDelivery = {
+  customerName: string;
+  detail: string;
+  status: QueueStatus;
+};
+
+const queuePreview: QueueDelivery[] = [
+  {
+    customerName: "Maya Thompson",
+    detail: "Current stop",
+    status: "current",
+  },
+  {
+    customerName: "Andre Lewis",
+    detail: "Next stop locked",
+    status: "locked",
+  },
+  {
+    customerName: "Sofia Ramirez",
+    detail: "Score-ranked queue",
+    status: "scored",
+  },
+  {
+    customerName: "Noah Patel",
+    detail: "Score-ranked queue",
+    status: "scored",
+  },
+  {
+    customerName: "Iris Coleman",
+    detail: "Score-ranked queue",
+    status: "scored",
+  },
+  {
+    customerName: "Eli Morgan",
+    detail: "Score-ranked queue",
+    status: "scored",
+  },
+];
+
+const statusMeta = {
+  current: {
+    icon: <Navigation size={18} aria-hidden="true" />,
+    title: "Current delivery",
+  },
+  locked: {
+    icon: <Lock size={18} aria-hidden="true" />,
+    title: "Locked next delivery",
+  },
+  scored: {
+    icon: <Sparkles size={18} aria-hidden="true" />,
+    title: "Backend-scored queued delivery",
+  },
+} satisfies Record<QueueStatus, { icon: ReactNode; title: string }>;
 
 export function DeliveriesScreen() {
-  const queuePreview = [
-    {
-      label: "Current delivery",
-      detail: "Ready for driver action",
-      locked: true,
-    },
-    {
-      label: "Next delivery",
-      detail: "Locked in after current stop",
-      locked: true,
-    },
-    {
-      label: "Queued delivery",
-      detail: "Backend score can reorder this stop",
-      locked: false,
-    },
-  ];
-
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-3xl font-black leading-tight text-[var(--bayblaze-ink)]">
           Delivery Route
@@ -30,60 +69,69 @@ export function DeliveriesScreen() {
         </span>
       </div>
 
-      <div className="grid gap-3">
-        {queuePreview.map((delivery, index) => (
-          <div
-            className={`rounded-[24px] border bg-white p-4 shadow-sm ${
-              index === 0
-                ? "border-[var(--bayblaze-green)]"
-                : "border-[var(--bayblaze-line)]"
-            }`}
-            key={`${delivery.label}-${index}`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span
-                  className={`grid size-10 shrink-0 place-items-center rounded-2xl text-sm font-black ${
-                    index === 0
-                      ? "bg-[var(--bayblaze-green)] text-white"
-                      : "bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-base font-black text-[var(--bayblaze-ink)]">
-                    {delivery.label}
-                  </p>
-                  <p className="mt-1 truncate text-sm font-semibold text-[var(--bayblaze-muted)]">
-                    {delivery.detail}
-                  </p>
-                </div>
-              </div>
-              <span
-                className={`grid size-9 shrink-0 place-items-center rounded-full ${
-                  delivery.locked
-                    ? "bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
-                    : "bg-green-50 text-[var(--bayblaze-green-dark)]"
-                }`}
-                title={delivery.locked ? "Locked stop" : "Score-ranked stop"}
-              >
-                {delivery.locked ? (
-                  <Lock size={17} aria-hidden="true" />
-                ) : (
-                  <Sparkles size={17} aria-hidden="true" />
-                )}
-              </span>
-            </div>
-          </div>
-        ))}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="grid gap-3 pb-4">
+          {queuePreview.map((delivery, index) => (
+            <DeliveryPill
+              delivery={delivery}
+              key={`${delivery.customerName}-${index}`}
+              muted={index > 1}
+            />
+          ))}
+        </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="mt-auto rounded-[24px] bg-[var(--bayblaze-cream)] px-4 py-3">
-        <p className="text-sm font-semibold leading-6 text-[var(--bayblaze-muted)]">
-          The first two deliveries stay locked. Later queued deliveries can be
-          reprioritized after the current order is completed.
-        </p>
+function DeliveryPill({
+  delivery,
+  muted,
+}: {
+  delivery: QueueDelivery;
+  muted: boolean;
+}) {
+  const meta = statusMeta[delivery.status];
+
+  return (
+    <div
+      className={`rounded-[24px] border p-4 shadow-sm ${
+        muted
+          ? "border-slate-200 bg-slate-50 text-slate-400 opacity-70"
+          : delivery.status === "current"
+            ? "border-[var(--bayblaze-green)] bg-white text-[var(--bayblaze-ink)]"
+            : "border-[var(--bayblaze-line)] bg-white text-[var(--bayblaze-ink)]"
+      }`}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className={`grid size-10 shrink-0 place-items-center rounded-2xl ${
+            muted
+              ? "bg-slate-200 text-slate-500"
+              : delivery.status === "current"
+                ? "bg-[var(--bayblaze-green)] text-white"
+                : "bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
+          }`}
+          title={meta.title}
+        >
+          {meta.icon}
+        </span>
+        <div className="min-w-0">
+          <p
+            className={`truncate text-base font-black ${
+              muted ? "text-slate-500" : "text-[var(--bayblaze-ink)]"
+            }`}
+          >
+            {delivery.customerName}
+          </p>
+          <p
+            className={`mt-1 truncate text-sm font-semibold ${
+              muted ? "text-slate-400" : "text-[var(--bayblaze-muted)]"
+            }`}
+          >
+            {delivery.detail}
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -122,11 +122,11 @@ function App() {
       </header>
 
       <section
-        className={`flex flex-1 flex-col px-5 py-5 ${
+        className={`flex min-h-0 flex-1 flex-col px-5 py-5 ${
           isLoginScreen ? "mx-auto w-full max-w-md justify-center" : ""
         }`}
       >
-        <div className="page-transition flex flex-1 flex-col" key={screenKey}>
+        <div className="page-transition flex min-h-0 flex-1 flex-col" key={screenKey}>
           {screen}
         </div>
       </section>

@@ -53,16 +53,22 @@ export function DeliveryWorkflowScreen({
   const requiresWarehouse = order.items.some(
     (item) => item.inventoryLocation === "warehouse",
   );
+  const workflowStorageKey = `bayblaze-driver-workflow:${profile.uid}:${order.orderId}`;
+  const savedWorkflow = readSavedWorkflow(workflowStorageKey);
   const [step, setStep] = useState<WorkflowStep>(
-    requiresWarehouse ? "warehouse" : "items",
+    savedWorkflow?.step ?? (requiresWarehouse ? "warehouse" : "items"),
   );
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(
+    savedWorkflow?.checkedItems ?? {},
+  );
   const [confirmingItemId, setConfirmingItemId] = useState<string | null>(null);
-  const [idChecks, setIdChecks] = useState({
-    over21: false,
-    unexpired: false,
-    photoMatches: false,
-  });
+  const [idChecks, setIdChecks] = useState(
+    savedWorkflow?.idChecks ?? {
+      over21: false,
+      unexpired: false,
+      photoMatches: false,
+    },
+  );
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelReason, setShowCancelReason] = useState(false);
   const [photoAttempt, setPhotoAttempt] = useState<File | null>(null);
@@ -85,6 +91,14 @@ export function DeliveryWorkflowScreen({
     step === "id-photo"
       ? "Please take a clear photo of the customers ID. Please make sure the photo isn't blurry and has all 4 corners of the ID showing."
       : "Please take a clear photo of the signed merchant invoice. Please make sure the photo isn't blurry and the full invoice is visible.";
+
+  useEffect(() => {
+    writeSavedWorkflow(workflowStorageKey, {
+      checkedItems,
+      idChecks,
+      step,
+    });
+  }, [checkedItems, idChecks, step, workflowStorageKey]);
 
   function openMaps(address: string) {
     window.open(
@@ -591,4 +605,49 @@ function PhotoStepCard({
       </PrimaryButton>
     </StepShell>
   );
+}
+
+
+type SavedWorkflowState = {
+  step: WorkflowStep;
+  checkedItems: Record<string, boolean>;
+  idChecks: {
+    over21: boolean;
+    unexpired: boolean;
+    photoMatches: boolean;
+  };
+};
+
+function readSavedWorkflow(key: string): SavedWorkflowState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<SavedWorkflowState>;
+    if (!parsed.step || !parsed.checkedItems || !parsed.idChecks) {
+      return null;
+    }
+
+    return {
+      step: parsed.step,
+      checkedItems: parsed.checkedItems,
+      idChecks: parsed.idChecks,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeSavedWorkflow(key: string, state: SavedWorkflowState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(key, JSON.stringify(state));
 }

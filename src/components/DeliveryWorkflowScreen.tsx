@@ -24,23 +24,7 @@ import {
   logDeliveryAttempt,
   uploadDeliveryAttemptPhoto,
 } from "../lib/driverData";
-import type { DriverProfile } from "../lib/types";
-
-export type DeliveryOrderItem = {
-  id: string;
-  name: string;
-  variant: string;
-  quantity: number;
-  imageUrl: string;
-  inventoryLocation: "vehicle" | "warehouse";
-};
-
-export type DeliveryOrderPreview = {
-  id: string;
-  customerName: string;
-  customerAddress: string;
-  items: DeliveryOrderItem[];
-};
+import type { DriverDeliveryItem, DriverDeliveryStop, DriverProfile } from "../lib/types";
 
 type WorkflowStep =
   | "warehouse"
@@ -62,7 +46,7 @@ export function DeliveryWorkflowScreen({
   profile,
   onReturnToRoute,
 }: {
-  order: DeliveryOrderPreview;
+  order: DriverDeliveryStop;
   profile: DriverProfile;
   onReturnToRoute: () => void;
 }) {
@@ -118,7 +102,7 @@ export function DeliveryWorkflowScreen({
       if (type) {
         await logDeliveryAttempt({
           uid: profile.uid,
-          orderId: order.id,
+          orderId: order.orderId,
           type,
         });
       }
@@ -147,7 +131,7 @@ export function DeliveryWorkflowScreen({
     try {
       await logDeliveryAttempt({
         uid: profile.uid,
-        orderId: order.id,
+        orderId: order.orderId,
         type: "cancelled",
         note: cancelReason,
       });
@@ -171,7 +155,7 @@ export function DeliveryWorkflowScreen({
     try {
       await uploadDeliveryAttemptPhoto({
         uid: profile.uid,
-        orderId: order.id,
+        orderId: order.orderId,
         type: photoStep === "id-photo" ? "id_photo" : "merchant_invoice_photo",
         photoFile: photoAttempt,
       });
@@ -500,7 +484,7 @@ function OrderItemRow({
   onClick,
 }: {
   checked: boolean;
-  item: DeliveryOrderItem;
+  item: DriverDeliveryItem;
   onClick: () => void;
 }) {
   return (
@@ -540,7 +524,7 @@ function ConfirmationDialog({
   onCancel,
   onConfirm,
 }: {
-  item?: DeliveryOrderItem;
+  item?: DriverDeliveryItem;
   onCancel: () => void;
   onConfirm: () => void;
 }) {

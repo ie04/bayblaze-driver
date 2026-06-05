@@ -57,6 +57,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /driver_delivery_queues/{uid} {
+      allow read: if isDriver(uid);
+      allow create, update, delete: if false;
+    }
+
     match /delivery_attempt_logs/{logId} {
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
       allow read, update, delete: if false;

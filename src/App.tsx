@@ -15,14 +15,21 @@ import { DriverProfileScreen } from "./components/DriverProfileScreen";
 import { ProfileSetup } from "./components/ProfileSetup";
 import { VehicleLink } from "./components/VehicleLink";
 import { auth, firebaseReady } from "./lib/firebase";
-import { previewDeliveryOrder } from "./lib/deliveryPreview";
-import { subscribeDriverProfile } from "./lib/driverData";
-import type { DriverProfile } from "./lib/types";
+import {
+  subscribeDriverDeliveryQueue,
+  subscribeDriverProfile,
+  syncDriverDeliveryQueue,
+} from "./lib/driverData";
+import type { DriverDeliveryQueue, DriverDeliveryStop, DriverProfile } from "./lib/types";
 
 function App() {
   const [authUser, setAuthUser] = useState(auth.currentUser);
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
+  const [deliveryQueue, setDeliveryQueue] = useState<DriverDeliveryQueue | null>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<DriverDeliveryStop | null>(null);
   const [authLoading, setAuthLoading] = useState(firebaseReady);
+  const [syncingDeliveries, setSyncingDeliveries] = useState(false);
+  const [deliverySyncError, setDeliverySyncError] = useState("");
   const [activeView, setActiveView] = useState<
     "dashboard" | "deliveries" | "delivery-workflow" | "profile"
   >("dashboard");
@@ -36,6 +43,8 @@ function App() {
       setAuthUser(user);
       if (!user) {
         setProfile(null);
+        setDeliveryQueue(null);
+        setSelectedDelivery(null);
         setActiveView("dashboard");
       } else {
         setProfile(undefined);
@@ -54,11 +63,36 @@ function App() {
     });
   }, [authUser]);
 
+  useEffect(() => {
+    if (!authUser) {
+      return;
+    }
+
+    return subscribeDriverDeliveryQueue(authUser.uid, (nextQueue) => {
+      setDeliveryQueue(nextQueue);
+    });
+  }, [authUser]);
+
   const initials = useMemo(() => {
     const first = profile?.firstName?.[0] ?? authUser?.email?.[0] ?? "D";
     const last = profile?.lastName?.[0] ?? "";
     return `${first}${last}`.toUpperCase();
   }, [authUser?.email, profile?.firstName, profile?.lastName]);
+
+  async function handleDeliverySync() {
+    setSyncingDeliveries(true);
+    setDeliverySyncError("");
+
+    try {
+      await syncDriverDeliveryQueue();
+    } catch (caught) {
+      setDeliverySyncError(
+        caught instanceof Error ? caught.message : "Delivery sync failed.",
+      );
+    } finally {
+      setSyncingDeliveries(false);
+    }
+  }
 
   if (!firebaseReady) {
     return <EnvironmentNotice />;
@@ -104,15 +138,38 @@ function App() {
   } else if (profile && activeView === "deliveries") {
     screenKey = "deliveries";
     screen = (
-      <DeliveriesScreen onOpenCurrentDelivery={() => setActiveView("delivery-workflow")} />
+      <DeliveryRouteView
+        error={deliverySyncError}
+        queue={deliveryQueue}
+        syncing={syncingDeliveries}
+        onOpenCurrentDelivery={(stop) => {
+          setSelectedDelivery(stop);
+          setActiveView("delivery-workflow");
+        }}
+        onSync={() => void handleDeliverySync()}
+      />
     );
-  } else if (profile && activeView === "delivery-workflow") {
+  } else if (profile && activeView === "delivery-workflow" && selectedDelivery) {
     screenKey = "delivery-workflow";
     screen = (
       <DeliveryWorkflowScreen
-        order={previewDeliveryOrder}
+        order={selectedDelivery}
         profile={profile}
         onReturnToRoute={() => setActiveView("deliveries")}
+      />
+    );
+  } else if (profile && activeView === "delivery-workflow") {
+    screenKey = "deliveries";
+    screen = (
+      <DeliveryRouteView
+        error={deliverySyncError}
+        queue={deliveryQueue}
+        syncing={syncingDeliveries}
+        onOpenCurrentDelivery={(stop) => {
+          setSelectedDelivery(stop);
+          setActiveView("delivery-workflow");
+        }}
+        onSync={() => void handleDeliverySync()}
       />
     );
   } else if (profile && !profile.activeVehicleId) {
@@ -152,17 +209,25 @@ function App() {
               <button
                 type="button"
                 className={`grid size-12 place-items-center rounded-full border transition ${
-                  activeView === "deliveries"
+                  activeView === "deliveries" || activeView === "delivery-workflow"
                     ? "border-[var(--bayblaze-green)] bg-green-50 text-[var(--bayblaze-green-dark)] shadow-lg shadow-green-900/10"
                     : "border-[var(--bayblaze-line)] bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]"
                 }`}
                 aria-label={
-                  activeView === "deliveries" ? "Return to dashboard" : "Open deliveries"
+                  activeView === "deliveries" || activeView === "delivery-workflow"
+                    ? "Return to dashboard"
+                    : "Open deliveries"
                 }
-                title={activeView === "deliveries" ? "Dashboard" : "Deliveries"}
+                title={
+                  activeView === "deliveries" || activeView === "delivery-workflow"
+                    ? "Dashboard"
+                    : "Deliveries"
+                }
                 onClick={() =>
                   setActiveView((current) =>
-                    current === "deliveries" ? "dashboard" : "deliveries",
+                    current === "deliveries" || current === "delivery-workflow"
+                      ? "dashboard"
+                      : "deliveries",
                   )
                 }
               >
@@ -234,3 +299,33 @@ function EnvironmentNotice() {
 }
 
 export default App;
+
+function DeliveryRouteView({
+  error,
+  queue,
+  syncing,
+  onOpenCurrentDelivery,
+  onSync,
+}: {
+  error: string;
+  queue: DriverDeliveryQueue | null;
+  syncing: boolean;
+  onOpenCurrentDelivery: (stop: DriverDeliveryStop) => void;
+  onSync: () => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <DeliveriesScreen
+        queue={queue}
+        syncing={syncing}
+        onOpenCurrentDelivery={onOpenCurrentDelivery}
+        onSync={onSync}
+      />
+      {error ? (
+        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}

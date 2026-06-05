@@ -53,6 +53,39 @@ export type DriverLocationSnapshot = {
   updatedAt?: Timestamp;
 };
 
+export type DeliveryItemInventoryLocation = "vehicle" | "warehouse";
+
+export type DeliveryStopStatus = "current" | "locked" | "scored";
+
+export type DriverDeliveryItem = {
+  id: string;
+  productId?: string;
+  variantId?: string;
+  name: string;
+  variant: string;
+  quantity: number;
+  imageUrl: string;
+  inventoryLocation: DeliveryItemInventoryLocation;
+};
+
+export type DriverDeliveryStop = {
+  orderId: string;
+  customerName: string;
+  customerAddress: string;
+  status: DeliveryStopStatus;
+  locked: boolean;
+  score?: number;
+  eta?: string;
+  items: DriverDeliveryItem[];
+};
+
+export type DriverDeliveryQueue = {
+  uid: string;
+  activeOrderId?: string;
+  stops: DriverDeliveryStop[];
+  updatedAt?: Timestamp;
+};
+
 export type DriverSignupMode = "login" | "code_sent";
 
 export type PasswordValidation = {

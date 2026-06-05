@@ -1,46 +1,7 @@
 import type { ReactNode } from "react";
-import { Lock, Navigation, Route, Sparkles } from "lucide-react";
+import { Loader2, Lock, Navigation, RefreshCw, Route, Sparkles } from "lucide-react";
 
-type QueueStatus = "current" | "locked" | "scored";
-
-type QueueDelivery = {
-  customerName: string;
-  detail: string;
-  status: QueueStatus;
-};
-
-const queuePreview: QueueDelivery[] = [
-  {
-    customerName: "Maya Thompson",
-    detail: "Current stop",
-    status: "current",
-  },
-  {
-    customerName: "Andre Lewis",
-    detail: "Next stop locked",
-    status: "locked",
-  },
-  {
-    customerName: "Sofia Ramirez",
-    detail: "Score-ranked queue",
-    status: "scored",
-  },
-  {
-    customerName: "Noah Patel",
-    detail: "Score-ranked queue",
-    status: "scored",
-  },
-  {
-    customerName: "Iris Coleman",
-    detail: "Score-ranked queue",
-    status: "scored",
-  },
-  {
-    customerName: "Eli Morgan",
-    detail: "Score-ranked queue",
-    status: "scored",
-  },
-];
+import type { DriverDeliveryQueue, DriverDeliveryStop, DeliveryStopStatus } from "../lib/types";
 
 const statusMeta = {
   current: {
@@ -55,36 +16,87 @@ const statusMeta = {
     icon: <Sparkles size={18} aria-hidden="true" />,
     title: "Backend-scored queued delivery",
   },
-} satisfies Record<QueueStatus, { icon: ReactNode; title: string }>;
+} satisfies Record<DeliveryStopStatus, { icon: ReactNode; title: string }>;
 
 export function DeliveriesScreen({
+  queue,
   onOpenCurrentDelivery,
+  onSync,
+  syncing,
 }: {
-  onOpenCurrentDelivery: () => void;
+  queue: DriverDeliveryQueue | null;
+  onOpenCurrentDelivery: (stop: DriverDeliveryStop) => void;
+  onSync: () => void;
+  syncing: boolean;
 }) {
+  const stops = queue?.stops ?? [];
+  const currentStop = stops[0] ?? null;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-3xl font-black leading-tight text-[var(--bayblaze-ink)]">
           Delivery Route
         </h2>
-        <span className="grid size-11 place-items-center rounded-2xl bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]">
-          <Route size={22} aria-hidden="true" />
-        </span>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        <div className="grid gap-3 pb-4">
-          {queuePreview.map((delivery, index) => (
-            <DeliveryPill
-              delivery={delivery}
-              key={`${delivery.customerName}-${index}`}
-              muted={index > 1}
-              onClick={index === 0 ? onOpenCurrentDelivery : undefined}
-            />
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-2xl border border-[var(--bayblaze-line)] bg-white text-[var(--bayblaze-green-dark)]"
+            aria-label="Sync delivery route"
+            title="Sync delivery route"
+            onClick={onSync}
+            disabled={syncing}
+          >
+            {syncing ? (
+              <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+            ) : (
+              <RefreshCw size={19} aria-hidden="true" />
+            )}
+          </button>
+          <span className="grid size-11 place-items-center rounded-2xl bg-[var(--bayblaze-cream)] text-[var(--bayblaze-green-dark)]">
+            <Route size={22} aria-hidden="true" />
+          </span>
         </div>
       </div>
+
+      {stops.length === 0 ? (
+        <div className="grid flex-1 place-items-center rounded-[28px] border border-[var(--bayblaze-line)] bg-white p-5 text-center">
+          <div>
+            <p className="text-lg font-black text-[var(--bayblaze-ink)]">
+              No assigned deliveries
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[var(--bayblaze-muted)]">
+              Delivery assignments from Medusa and IsoChronos scoring will appear here.
+            </p>
+            <button
+              type="button"
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--bayblaze-green)] px-5 text-sm font-black text-white"
+              onClick={onSync}
+              disabled={syncing}
+            >
+              {syncing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+              Sync Deliveries
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="grid gap-3 pb-4">
+            {stops.map((delivery, index) => (
+              <DeliveryPill
+                delivery={delivery}
+                key={delivery.orderId}
+                muted={index > 1}
+                onClick={
+                  currentStop?.orderId === delivery.orderId
+                    ? () => onOpenCurrentDelivery(delivery)
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -94,7 +106,7 @@ function DeliveryPill({
   muted,
   onClick,
 }: {
-  delivery: QueueDelivery;
+  delivery: DriverDeliveryStop;
   muted: boolean;
   onClick?: () => void;
 }) {
@@ -139,7 +151,11 @@ function DeliveryPill({
               muted ? "text-slate-400" : "text-[var(--bayblaze-muted)]"
             }`}
           >
-            {delivery.detail}
+            {delivery.status === "current"
+              ? "Current stop"
+              : delivery.status === "locked"
+                ? "Next stop locked"
+                : delivery.eta ?? "Score-ranked queue"}
           </p>
         </div>
       </div>

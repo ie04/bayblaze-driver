@@ -14,10 +14,16 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
-import { db, storage } from "./firebase";
-import type { DriverLocationSnapshot, DriverProfile, VehicleRecord } from "./types";
+import { db, functions, storage } from "./firebase";
+import type {
+  DriverDeliveryQueue,
+  DriverLocationSnapshot,
+  DriverProfile,
+  VehicleRecord,
+} from "./types";
 
 export type DeliveryAttemptLogType =
   | "warehouse_arrival"
@@ -27,6 +33,11 @@ export type DeliveryAttemptLogType =
   | "cancelled"
   | "completed";
 
+const syncDriverDeliveryQueueCallable = httpsCallable<void, { stopCount: number }>(
+  functions,
+  "syncDriverDeliveryQueue",
+);
+
 export function subscribeDriverProfile(
   uid: string,
   onChange: (profile: DriverProfile | null) => void,
@@ -34,6 +45,20 @@ export function subscribeDriverProfile(
   return onSnapshot(doc(db, "driver_profiles", uid), (snapshot) => {
     onChange(snapshot.exists() ? (snapshot.data() as DriverProfile) : null);
   });
+}
+
+export function subscribeDriverDeliveryQueue(
+  uid: string,
+  onChange: (queue: DriverDeliveryQueue | null) => void,
+) {
+  return onSnapshot(doc(db, "driver_delivery_queues", uid), (snapshot) => {
+    onChange(snapshot.exists() ? (snapshot.data() as DriverDeliveryQueue) : null);
+  });
+}
+
+export async function syncDriverDeliveryQueue() {
+  const result = await syncDriverDeliveryQueueCallable();
+  return result.data;
 }
 
 export async function saveDriverProfile({

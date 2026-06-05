@@ -62,6 +62,10 @@ Suggested collections:
   linked driver, link timestamp, updated timestamp.
 - `driver_location_snapshots/{uid}`: latest driver location snapshot when live
   driver location is enabled.
+- `driver_delivery_queues/{uid}`: driver-safe route queue materialized by
+  Firebase Functions from Medusa orders and IsoChronos scoring. Driver clients
+  may read only their own queue; they do not write scoring, order status, or
+  Medusa data directly.
 - `driver_signup_codes/{emailKey}`: backend-owned short-lived verification
   challenge state. Store hashed codes only, never raw codes.
 - `delivery_attempt_logs/{logId}`: timestamped driver delivery attempt events
@@ -140,6 +144,12 @@ linked to their own UID during clock-out.
   `VITE_FIREBASE_MESSAGING_SENDER_ID`, and `VITE_FIREBASE_APP_ID`.
 - Server-only function configuration includes `RESEND_API_KEY` and a verified
   sender address such as `DRIVER_EMAIL_FROM`.
+- Server-only Medusa/IsoChronos integration variables belong in Firebase
+  Functions only: `MEDUSA_BACKEND_URL`, `MEDUSA_ADMIN_API_TOKEN`,
+  `MEDUSA_DRIVER_QUEUE_PATH`, `MEDUSA_DELIVERY_ATTEMPT_PATH`,
+  `ISOCHRONOS_API_URL`, `ISOCHRONOS_ADMIN_TOKEN`,
+  `ISOCHRONOS_QUEUE_SCORE_PATH`, and `ISOCHRONOS_DRIVER_LOCATION_PATH`.
+  Never expose these through `VITE_` frontend variables.
 
 ## Local Commands
 

@@ -68,8 +68,9 @@ export function VehicleLink({ profile }: { profile: DriverProfile }) {
     try {
       await linkVehicleToDriver(profile, selectedVehicleId);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Vehicle link failed.");
+      const message = caught instanceof Error ? caught.message : "Vehicle link failed.";
       await loadVehicles();
+      setError(message);
     } finally {
       setSaving(false);
     }

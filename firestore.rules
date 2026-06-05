@@ -10,6 +10,32 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function changedVehicleLinkFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'linkedDriverUid',
+        'linkedAt',
+        'updatedAt',
+      ]);
+    }
+
+    function canLinkVehicleToSelf() {
+      return signedIn()
+        && changedVehicleLinkFieldsOnly()
+        && resource.data.active == true
+        && !resource.data.keys().hasAny(['linkedDriverUid'])
+        && request.resource.data.linkedDriverUid == request.auth.uid
+        && request.resource.data.linkedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function canUnlinkOwnVehicle() {
+      return signedIn()
+        && changedVehicleLinkFieldsOnly()
+        && resource.data.linkedDriverUid == request.auth.uid
+        && !request.resource.data.keys().hasAny(['linkedDriverUid', 'linkedAt'])
+        && request.resource.data.updatedAt == request.time;
+    }
+
     match /driver_allowlist/{emailKey} {
       allow get: if true;
       allow list, create, update, delete: if false;
@@ -22,7 +48,8 @@ service cloud.firestore {
 
     match /vehicles/{vehicleId} {
       allow read: if signedIn();
-      allow create, update, delete: if false;
+      allow update: if canLinkVehicleToSelf() || canUnlinkOwnVehicle();
+      allow create, delete: if false;
     }
 
     match /driver_location_snapshots/{uid} {

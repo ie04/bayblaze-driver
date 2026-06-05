@@ -65,6 +65,11 @@ Suggested collections:
 - `driver_signup_codes/{emailKey}`: backend-owned short-lived verification
   challenge state. Store hashed codes only, never raw codes.
 
+Firestore rules keep vehicle records dispatch-owned, but signed-in drivers may
+update only `linkedDriverUid`, `linkedAt`, and `updatedAt` to claim an active,
+currently unlinked vehicle for themselves, or to release a vehicle currently
+linked to their own UID during clock-out.
+
 ## Driver Workflow Rules
 
 - Profile setup requires first name, last name, phone number, bio, and a

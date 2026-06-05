@@ -80,6 +80,10 @@ linked to their own UID during clock-out.
   vehicle, and free that vehicle for another driver.
 - Vehicle selection is required again on the next clock-in so one driver can use
   different vehicles on different days.
+- Delivery route queues are ordered as a stack. The top delivery is always the
+  current stop, and the first two deliveries (current and next) must remain
+  locked. Queued deliveries after the second stop may be reordered by backend
+  scoring, which recalculates when the current order is marked complete.
 
 ## Cross-Repo Boundaries
 

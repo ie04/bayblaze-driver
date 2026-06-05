@@ -5,6 +5,7 @@ import type {
   ReactNode,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
+  useEffect,
 } from "react";
 import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -448,8 +449,21 @@ export function ConfirmDialog({
   onConfirm: () => void;
   title: string;
 }) {
+  useEffect(() => {
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
+
   return createPortal(
-    <div className="fixed inset-0 z-[9999] grid place-items-center bg-black/45 px-5">
+    <div className="fixed left-0 top-0 z-[9999] grid h-[100dvh] w-[100vw] place-items-center bg-black/45 px-5">
       <Card as="div" className="w-full max-w-sm" elevated>
         <h3 className="text-xl font-black text-[var(--bb-charcoal)]">{title}</h3>
         {body ? (

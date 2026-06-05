@@ -92,7 +92,13 @@ function App() {
     screen = <ProfileSetup user={authUser} profile={profile ?? null} />;
   } else if (profile && activeView === "profile") {
     screenKey = "profile";
-    screen = <DriverProfileScreen profile={profile} onLogout={() => void signOut(auth)} />;
+    screen = (
+      <DriverProfileScreen
+        profile={profile}
+        onClockIn={() => setActiveView("dashboard")}
+        onLogout={() => void signOut(auth)}
+      />
+    );
   } else if (profile && activeView === "deliveries") {
     screenKey = "deliveries";
     screen = <DeliveriesScreen />;

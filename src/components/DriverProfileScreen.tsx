@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Loader2, LogOut, Mail, Phone, Power, UserRound } from "lucide-react";
+import { LogOut, Mail, Phone, UserRound } from "lucide-react";
 
 import { ActiveShiftWidget } from "./DriverDashboard";
 import { clockOutDriver } from "../lib/driverData";
@@ -8,9 +8,11 @@ import type { DriverProfile } from "../lib/types";
 
 export function DriverProfileScreen({
   profile,
+  onClockIn,
   onLogout,
 }: {
   profile: DriverProfile;
+  onClockIn: () => void;
   onLogout: () => void;
 }) {
   const [clockingOut, setClockingOut] = useState(false);
@@ -30,7 +32,26 @@ export function DriverProfileScreen({
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <ActiveShiftWidget profile={profile} />
+      <ActiveShiftWidget
+        profile={profile}
+        action={
+          profile.clockedIn
+            ? {
+                busy: clockingOut,
+                label: "Clock Out",
+                onClick: () => void handleClockOut(),
+                tone: "red",
+              }
+            : {
+                label: "Clock In",
+                onClick: () => {
+                  setError("");
+                  onClockIn();
+                },
+                tone: "green",
+              }
+        }
+      />
 
       <section className="rounded-[28px] border border-[var(--bayblaze-line)] bg-white p-5 shadow-sm">
         <div className="flex items-center gap-4">
@@ -67,22 +88,6 @@ export function DriverProfileScreen({
           {profile.bio}
         </p>
       </section>
-
-      <button
-        type="button"
-        className="flex min-h-28 flex-col justify-between rounded-[24px] border border-red-100 bg-red-50 p-4 text-left shadow-sm transition disabled:opacity-60"
-        onClick={() => void handleClockOut()}
-        disabled={clockingOut}
-      >
-        <span className="grid size-10 place-items-center rounded-2xl bg-white text-red-700">
-          {clockingOut ? (
-            <Loader2 className="size-5 animate-spin" aria-hidden="true" />
-          ) : (
-            <Power size={20} aria-hidden="true" />
-          )}
-        </span>
-        <span className="text-base font-black text-red-800">Clock out</span>
-      </button>
 
       {error ? (
         <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">

@@ -64,7 +64,18 @@ export function DriverDashboard({ profile }: { profile: DriverProfile }) {
   );
 }
 
-export function ActiveShiftWidget({ profile }: { profile: DriverProfile }) {
+export function ActiveShiftWidget({
+  profile,
+  action,
+}: {
+  profile: DriverProfile;
+  action?: {
+    busy?: boolean;
+    label: string;
+    onClick: () => void;
+    tone: "green" | "red";
+  };
+}) {
   return (
     <section className="rounded-[28px] bg-[var(--bayblaze-green-dark)] p-5 text-white shadow-xl shadow-green-950/20">
       <div className="flex items-start justify-between gap-4">
@@ -85,9 +96,26 @@ export function ActiveShiftWidget({ profile }: { profile: DriverProfile }) {
         <StatusTile
           icon={<Clock size={18} />}
           label="Status"
-          value={profile.clockedIn ? "Clocked in" : "Off duty"}
+          value={profile.clockedIn ? "Clocked in" : "Clocked out"}
         />
       </div>
+      {action ? (
+        <button
+          type="button"
+          className={`mt-3 flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-black uppercase shadow-lg transition disabled:opacity-70 ${
+            action.tone === "red"
+              ? "bg-red-600 text-white shadow-red-950/20 hover:bg-red-700"
+              : "bg-[var(--bayblaze-green)] text-white shadow-green-950/20 hover:bg-[#5f9138]"
+          }`}
+          onClick={action.onClick}
+          disabled={action.busy}
+        >
+          {action.busy ? (
+            <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+          ) : null}
+          {action.label}
+        </button>
+      ) : null}
     </section>
   );
 }

@@ -150,6 +150,23 @@ linked to their own UID during clock-out.
   `ISOCHRONOS_API_URL`, `ISOCHRONOS_ADMIN_TOKEN`,
   `ISOCHRONOS_QUEUE_SCORE_PATH`, and `ISOCHRONOS_DRIVER_LOCATION_PATH`.
   Never expose these through `VITE_` frontend variables.
+- Current production backend service URLs:
+  `MEDUSA_BACKEND_URL=https://api.bayblaze.net` and
+  `ISOCHRONOS_API_URL=http://api.bayblaze.net:3030`.
+- Firebase Functions production env is stored locally in
+  `functions/.env.bayblaze-driver` and is intentionally gitignored. Do not
+  print or commit this file; deploy it with
+  `npx firebase-tools deploy --only functions:driver`.
+- Hetzner VPS SSH from this workstation:
+  `ssh -i ~/.ssh/codex_vps_ed25519 codex-deploy@178.156.179.156`.
+- Stable VPS service pointers live under `/home/codex-deploy/bayblaze`:
+  IsoChronos current checkout at
+  `/home/codex-deploy/bayblaze/isochronos/current`, IsoChronos runner at
+  `/home/codex-deploy/bayblaze/isochronos/runner`, and Medusa current checkout
+  at `/home/codex-deploy/bayblaze/medusa/current`.
+- Running VPS Docker Compose projects: `isochronos` uses
+  `/home/codex-deploy/bayblaze/isochronos/current/docker-compose.prod.yml`;
+  `medusa` uses `/home/codex-deploy/bayblaze/medusa/current/docker-compose.prod.yml`.
 
 ## Local Commands
 

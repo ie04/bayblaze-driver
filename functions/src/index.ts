@@ -399,14 +399,17 @@ function assertAuthenticated(uid?: string) {
 }
 
 async function writeDriverQueue(uid: string, queue: DriverDeliveryQueue) {
+  const data: Record<string, unknown> = {
+    ...queue,
+    uid,
+    stops: removeUndefinedValues(lockQueueHead(queue.stops)),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  data.activeOrderId = queue.stops[0]?.orderId ?? FieldValue.delete();
+
   await db.collection("driver_delivery_queues").doc(uid).set(
-    {
-      ...queue,
-      uid,
-      activeOrderId: queue.stops[0]?.orderId ?? FieldValue.delete(),
-      stops: lockQueueHead(queue.stops),
-      updatedAt: FieldValue.serverTimestamp(),
-    },
+    data,
     { merge: true },
   );
 }
@@ -684,4 +687,20 @@ function readString(...values: unknown[]) {
 function readOptionalString(...values: unknown[]) {
   const value = readString(...values);
   return value || undefined;
+}
+
+function removeUndefinedValues(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(removeUndefinedValues);
+  }
+
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .map(([key, entryValue]) => [key, removeUndefinedValues(entryValue)]),
+  );
 }

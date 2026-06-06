@@ -108,6 +108,11 @@ linked to their own UID during clock-out.
 - Delivery attempt photos are stored under
   `delivery-attempt-photos/{uid}/{orderId}/...` and referenced from
   `delivery_attempt_logs`.
+- Terminal driver delivery attempt logs (`completed` and `cancelled`) are sent
+  by Firebase Functions to Medusa `/admin/bayblaze/delivery-attempts`. Medusa
+  persists terminal state on order metadata as `bayblaze_delivery_status` plus
+  driver/timestamp fields, and the Medusa driver queue route excludes those
+  orders from future syncs.
 - Driver assignment alerts use two layers: the foreground PWA watches the
   authenticated `driver_delivery_queues/{uid}` snapshot and shows an in-app
   toast when a new order ID appears after the initial queue baseline, while

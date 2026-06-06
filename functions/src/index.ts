@@ -572,12 +572,15 @@ async function notifyMedusaDeliveryAttempt(log: DeliveryAttemptLog) {
   });
 
   if (!response.ok) {
+    const responseBody = await response.text().catch(() => "");
     logger.error("Medusa delivery attempt update failed", {
       uid: log.uid,
       orderId: log.orderId,
       type: log.type,
       status: response.status,
+      responseBody: responseBody.slice(0, 500),
     });
+    throw medusaSyncError("delivery attempt update", response.status);
   }
 }
 

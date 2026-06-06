@@ -5,8 +5,8 @@ import type {
   ReactNode,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
-  useEffect,
 } from "react";
+import { useEffect } from "react";
 import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
 import { createPortal } from "react-dom";
 

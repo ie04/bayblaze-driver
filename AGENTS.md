@@ -104,6 +104,12 @@ linked to their own UID during clock-out.
 - Delivery attempt photos are stored under
   `delivery-attempt-photos/{uid}/{orderId}/...` and referenced from
   `delivery_attempt_logs`.
+- The current driver assignment alert path is frontend-driven from the
+  authenticated `driver_delivery_queues/{uid}` snapshot: when a new order ID
+  appears after the initial queue baseline, the PWA shows an in-app toast and,
+  when browser notification permission is granted, an OS-level Notification API
+  alert. This does not yet register Firebase Cloud Messaging tokens for
+  closed-app/server-sent push.
 
 ## Cross-Repo Boundaries
 

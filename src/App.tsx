@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  BellRing,
   Route,
+  X,
 } from "lucide-react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
@@ -26,19 +28,33 @@ import {
   subscribeDriverProfile,
   syncDriverDeliveryQueue,
 } from "./lib/driverData";
+import {
+  getOrderAssignmentBody,
+  getOrderAssignmentTitle,
+  requestOrderNotificationPermission,
+  showOrderAssignmentNotification,
+} from "./lib/orderAlerts";
 import type { DriverDeliveryQueue, DriverDeliveryStop, DriverProfile } from "./lib/types";
+
+const ORDER_TOAST_DURATION_MS = 9_000;
 
 function App() {
   const [authUser, setAuthUser] = useState(auth.currentUser);
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
   const [deliveryQueue, setDeliveryQueue] = useState<DriverDeliveryQueue | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState<DriverDeliveryStop | null>(null);
+  const [orderToast, setOrderToast] = useState<{
+    id: string;
+    stop: DriverDeliveryStop;
+  } | null>(null);
   const [authLoading, setAuthLoading] = useState(firebaseReady);
   const [syncingDeliveries, setSyncingDeliveries] = useState(false);
   const [deliverySyncError, setDeliverySyncError] = useState("");
   const [activeView, setActiveView] = useState<
     "dashboard" | "deliveries" | "delivery-workflow" | "profile"
   >("dashboard");
+  const queueBaselineReady = useRef(false);
+  const previousAssignedOrderIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -51,10 +67,13 @@ function App() {
         setProfile(null);
         setDeliveryQueue(null);
         setSelectedDelivery(null);
+        setOrderToast(null);
         setActiveView("dashboard");
       } else {
         setProfile(undefined);
       }
+      queueBaselineReady.current = false;
+      previousAssignedOrderIds.current = new Set();
       setAuthLoading(false);
     });
   }, []);
@@ -74,10 +93,59 @@ function App() {
       return;
     }
 
+    queueBaselineReady.current = false;
+    previousAssignedOrderIds.current = new Set();
+
     return subscribeDriverDeliveryQueue(authUser.uid, (nextQueue) => {
+      const nextStops = nextQueue?.stops ?? [];
+      const nextOrderIds = new Set(nextStops.map((stop) => stop.orderId));
+
+      if (queueBaselineReady.current) {
+        const newAssignedStop = nextStops.find(
+          (stop) => !previousAssignedOrderIds.current.has(stop.orderId),
+        );
+
+        if (newAssignedStop) {
+          setOrderToast({
+            id: `${newAssignedStop.orderId}-${Date.now()}`,
+            stop: newAssignedStop,
+          });
+          void showOrderAssignmentNotification(newAssignedStop);
+        }
+      } else {
+        queueBaselineReady.current = true;
+      }
+
+      previousAssignedOrderIds.current = nextOrderIds;
       setDeliveryQueue(nextQueue);
     });
   }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser || !profile?.onboardingComplete || !profile.clockedIn) {
+      return;
+    }
+
+    const storageKey = `bayblaze-order-notification-permission:${authUser.uid}`;
+    if (window.localStorage.getItem(storageKey) || !("Notification" in window)) {
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, "requested");
+    void requestOrderNotificationPermission();
+  }, [authUser, profile?.clockedIn, profile?.onboardingComplete]);
+
+  useEffect(() => {
+    if (!orderToast) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setOrderToast((current) => (current?.id === orderToast.id ? null : current));
+    }, ORDER_TOAST_DURATION_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [orderToast]);
 
   const initials = useMemo(() => {
     const first = profile?.firstName?.[0] ?? authUser?.email?.[0] ?? "D";
@@ -98,6 +166,12 @@ function App() {
     } finally {
       setSyncingDeliveries(false);
     }
+  }
+
+  function openDeliveryAlert(stop: DriverDeliveryStop) {
+    setSelectedDelivery(stop);
+    setActiveView("delivery-workflow");
+    setOrderToast(null);
   }
 
   if (!firebaseReady) {
@@ -249,6 +323,13 @@ function App() {
           {screen}
         </div>
       </section>
+      {orderToast ? (
+        <OrderAssignmentToast
+          onClose={() => setOrderToast(null)}
+          onOpen={() => openDeliveryAlert(orderToast.stop)}
+          stop={orderToast.stop}
+        />
+      ) : null}
     </AppShell>
   );
 }
@@ -267,6 +348,54 @@ function EnvironmentNotice() {
         </p>
       </Card>
     </main>
+  );
+}
+
+function OrderAssignmentToast({
+  onClose,
+  onOpen,
+  stop,
+}: {
+  onClose: () => void;
+  onOpen: () => void;
+  stop: DriverDeliveryStop;
+}) {
+  return (
+    <div className="fixed inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-[80] mx-auto w-full max-w-md px-5 md:bottom-[calc(6rem+env(safe-area-inset-bottom))]">
+      <div
+        className="page-transition overflow-hidden rounded-[var(--bb-radius-card)] border border-[var(--bb-blaze-soft)] bg-white shadow-[var(--bb-shadow-card)]"
+        role="status"
+      >
+        <div className="flex items-start gap-3 p-4">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--bb-blaze-soft)] text-[var(--bb-blaze)]">
+            <BellRing size={21} aria-hidden="true" />
+          </span>
+          <button
+            className="min-w-0 flex-1 text-left"
+            onClick={onOpen}
+            type="button"
+          >
+            <p className="text-xs font-black uppercase text-[var(--bb-blaze)]">
+              New assignment
+            </p>
+            <h2 className="mt-1 truncate text-base font-black leading-tight text-[var(--bb-charcoal)]">
+              {getOrderAssignmentTitle(stop)}
+            </h2>
+            <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-[var(--bb-muted)]">
+              {getOrderAssignmentBody(stop)}
+            </p>
+          </button>
+          <button
+            aria-label="Dismiss delivery assignment alert"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--bb-muted)] transition hover:bg-[var(--bb-surface-warm)] hover:text-[var(--bb-charcoal)]"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={17} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

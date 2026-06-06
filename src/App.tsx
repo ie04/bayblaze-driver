@@ -380,8 +380,10 @@ function App() {
       }
     >
       <section
-        className={`w-full min-w-0 max-w-full touch-pan-y flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5 ${
-          isLoginScreen ? "items-center justify-center" : ""
+        className={`w-full min-w-0 max-w-full touch-pan-y flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-5 ${
+          isLoginScreen
+            ? "items-center justify-center pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-5"
+            : "py-5"
         }`}
       >
         <div

@@ -28,6 +28,10 @@ npm run build
 Required frontend variables are listed in `.env.example`. Server-only Resend
 settings are listed in `functions/.env.example`.
 
+Closed-app driver assignment push notifications also require
+`VITE_FIREBASE_VAPID_KEY`, using the Web Push certificate key from Firebase
+Cloud Messaging settings.
+
 ## Driver Access Flow
 
 1. Driver enters email.

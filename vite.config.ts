@@ -10,6 +10,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       injectRegister: false,
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "firebase-messaging-sw.ts",
       registerType: "autoUpdate",
       includeAssets: ["favicon-32x32.png", "apple-touch-icon.png"],
       manifest: {
@@ -37,7 +40,7 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
       },
     }),

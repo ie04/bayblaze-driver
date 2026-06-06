@@ -62,6 +62,16 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /driver_notification_tokens/{uid}/tokens/{tokenId} {
+      allow create, update: if isDriver(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 0
+        && request.resource.data.token.size() < 4096;
+      allow delete: if isDriver(uid);
+      allow read: if false;
+    }
+
     match /delivery_attempt_logs/{logId} {
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
       allow read, update, delete: if false;

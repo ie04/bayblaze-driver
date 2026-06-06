@@ -66,6 +66,10 @@ Suggested collections:
   Firebase Functions from Medusa orders and IsoChronos scoring. Driver clients
   may read only their own queue; they do not write scoring, order status, or
   Medusa data directly.
+- `driver_notification_tokens/{uid}/tokens/{tokenId}`: driver-owned Firebase
+  Cloud Messaging web tokens for closed-app delivery assignment push. Drivers
+  may create/update/delete only their own token docs; backend Functions read
+  them to send assignment alerts and remove invalid tokens.
 - `driver_signup_codes/{emailKey}`: backend-owned short-lived verification
   challenge state. Store hashed codes only, never raw codes.
 - `delivery_attempt_logs/{logId}`: timestamped driver delivery attempt events
@@ -104,12 +108,14 @@ linked to their own UID during clock-out.
 - Delivery attempt photos are stored under
   `delivery-attempt-photos/{uid}/{orderId}/...` and referenced from
   `delivery_attempt_logs`.
-- The current driver assignment alert path is frontend-driven from the
-  authenticated `driver_delivery_queues/{uid}` snapshot: when a new order ID
-  appears after the initial queue baseline, the PWA shows an in-app toast and,
-  when browser notification permission is granted, an OS-level Notification API
-  alert. This does not yet register Firebase Cloud Messaging tokens for
-  closed-app/server-sent push.
+- Driver assignment alerts use two layers: the foreground PWA watches the
+  authenticated `driver_delivery_queues/{uid}` snapshot and shows an in-app
+  toast when a new order ID appears after the initial queue baseline, while
+  Firebase Functions `handleDriverDeliveryQueuePush` compares queue writes and
+  sends Firebase Cloud Messaging web push to registered
+  `driver_notification_tokens/{uid}/tokens/*` for closed/background app alerts.
+  The VitePWA service worker is `src/firebase-messaging-sw.ts` and handles both
+  app precache and push notification click deep links.
 
 ## Cross-Repo Boundaries
 
@@ -158,7 +164,8 @@ linked to their own UID during clock-out.
 - Required local frontend variables are the Firebase web config values:
   `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
   `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`,
-  `VITE_FIREBASE_MESSAGING_SENDER_ID`, and `VITE_FIREBASE_APP_ID`.
+  `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, and
+  `VITE_FIREBASE_VAPID_KEY` for Firebase Cloud Messaging Web Push.
 - Server-only function configuration includes `RESEND_API_KEY` and a verified
   sender address such as `DRIVER_EMAIL_FROM`.
 - Server-only Medusa/IsoChronos integration variables belong in Firebase

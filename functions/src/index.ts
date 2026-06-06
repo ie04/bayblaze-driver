@@ -6,6 +6,7 @@ import {
   Timestamp,
   getFirestore,
 } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions";
@@ -15,9 +16,11 @@ initializeApp();
 
 const db = getFirestore();
 const auth = getAuth();
+const messaging = getMessaging();
 
 const CODE_ATTEMPT_LIMIT = 5;
 const DEFAULT_TTL_MINUTES = 15;
+const FCM_MULTICAST_LIMIT = 500;
 
 export const prepareDriverAccess = onCall<{ email?: unknown }>(async (request) => {
   const email = parseEmail(request.data.email);
@@ -198,6 +201,28 @@ export const handleDriverLocationSnapshot = onDocumentWritten(
   },
 );
 
+export const handleDriverDeliveryQueuePush = onDocumentWritten(
+  "driver_delivery_queues/{uid}",
+  async (event) => {
+    const uid = event.params.uid;
+    const beforeQueue = event.data?.before.data() as DriverDeliveryQueue | undefined;
+    const afterQueue = event.data?.after.data() as DriverDeliveryQueue | undefined;
+
+    if (!afterQueue) {
+      return;
+    }
+
+    const previousOrderIds = new Set((beforeQueue?.stops ?? []).map((stop) => stop.orderId));
+    const newStops = afterQueue.stops.filter((stop) => !previousOrderIds.has(stop.orderId));
+
+    if (newStops.length === 0) {
+      return;
+    }
+
+    await sendDriverAssignmentPush(uid, newStops[0]);
+  },
+);
+
 type DriverDeliveryItem = {
   id: string;
   productId?: string;
@@ -247,6 +272,10 @@ type DriverLocationSnapshot = {
   clockedIn: true;
   source: "driver-pwa";
   clientCapturedAt: number;
+};
+
+type DriverNotificationToken = {
+  token?: string;
 };
 
 type SignupCodeRecord = {
@@ -607,6 +636,102 @@ async function notifyIsoChronosLocation(snapshot: DriverLocationSnapshot) {
   }
 }
 
+async function sendDriverAssignmentPush(uid: string, stop: DriverDeliveryStop) {
+  const tokenSnapshot = await db
+    .collection("driver_notification_tokens")
+    .doc(uid)
+    .collection("tokens")
+    .get();
+  const tokenDocs = tokenSnapshot.docs
+    .map((tokenDoc) => {
+      const record = tokenDoc.data() as DriverNotificationToken;
+      return {
+        id: tokenDoc.id,
+        token: record.token,
+      };
+    })
+    .filter((record): record is { id: string; token: string } =>
+      typeof record.token === "string" && record.token.trim().length > 0,
+    );
+
+  if (tokenDocs.length === 0) {
+    logger.info("Skipping driver assignment push; no registered notification tokens.", {
+      uid,
+      orderId: stop.orderId,
+    });
+    return;
+  }
+
+  const title = `New delivery: ${stop.customerName}`;
+  const body = `${stop.eta ? `ETA ${stop.eta}. ` : ""}${stop.customerAddress}`;
+  const invalidTokenDocIds: string[] = [];
+
+  for (let index = 0; index < tokenDocs.length; index += FCM_MULTICAST_LIMIT) {
+    const batch = tokenDocs.slice(index, index + FCM_MULTICAST_LIMIT);
+    const response = await messaging.sendEachForMulticast({
+      tokens: batch.map((record) => record.token),
+      data: {
+        orderId: stop.orderId,
+        type: "driver_assignment",
+      },
+      webpush: {
+        headers: {
+          TTL: "1800",
+          Urgency: "high",
+        },
+        notification: {
+          badge: "/icons/bayblaze-driver-icon-192.png",
+          body,
+          icon: "/icons/bayblaze-driver-icon-192.png",
+          renotify: true,
+          requireInteraction: true,
+          tag: `bayblaze-delivery-${stop.orderId}`,
+          title,
+        },
+      },
+    });
+
+    response.responses.forEach((sendResponse, responseIndex) => {
+      if (sendResponse.success) {
+        return;
+      }
+
+      const code = sendResponse.error?.code;
+      if (
+        code === "messaging/registration-token-not-registered" ||
+        code === "messaging/invalid-registration-token"
+      ) {
+        invalidTokenDocIds.push(batch[responseIndex].id);
+        return;
+      }
+
+      logger.warn("Driver assignment push failed for one token", {
+        uid,
+        orderId: stop.orderId,
+        code,
+      });
+    });
+
+    logger.info("Sent driver assignment push batch", {
+      uid,
+      orderId: stop.orderId,
+      failureCount: response.failureCount,
+      successCount: response.successCount,
+    });
+  }
+
+  await Promise.all(
+    invalidTokenDocIds.map((tokenDocId) =>
+      db
+        .collection("driver_notification_tokens")
+        .doc(uid)
+        .collection("tokens")
+        .doc(tokenDocId)
+        .delete(),
+    ),
+  );
+}
+
 function normalizeDriverQueuePayload(uid: string, payload: unknown): DriverDeliveryQueue {
   const record = asRecord(payload) ?? {};
   const queueRecord = asRecord(record.queue) ?? record;
@@ -827,6 +952,34 @@ function readString(...values: unknown[]) {
 function readOptionalString(...values: unknown[]) {
   const value = readString(...values);
   return value || undefined;
+}
+
+function lockQueueHead(stops: DriverDeliveryStop[]): DriverDeliveryStop[] {
+  return stops.map((stop, index) => ({
+    ...stop,
+    locked: index < 2,
+    status: readQueueStatus(index),
+  }));
+}
+
+function readQueueStatus(index: number): DriverDeliveryStop["status"] {
+  if (index === 0) {
+    return "current";
+  }
+
+  if (index === 1) {
+    return "locked";
+  }
+
+  return "scored";
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value as Record<string, unknown>;
 }
 
 function removeUndefinedValues(value: unknown): unknown {

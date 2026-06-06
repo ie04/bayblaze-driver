@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BellRing,
@@ -24,6 +24,10 @@ import {
 } from "./components/ui";
 import { auth, firebaseReady } from "./lib/firebase";
 import {
+  registerDriverPushNotifications,
+  unregisterDriverPushNotifications,
+} from "./lib/driverNotifications";
+import {
   subscribeDriverDeliveryQueue,
   subscribeDriverProfile,
   syncDriverDeliveryQueue,
@@ -31,7 +35,6 @@ import {
 import {
   getOrderAssignmentBody,
   getOrderAssignmentTitle,
-  requestOrderNotificationPermission,
   showOrderAssignmentNotification,
 } from "./lib/orderAlerts";
 import type { DriverDeliveryQueue, DriverDeliveryStop, DriverProfile } from "./lib/types";
@@ -52,9 +55,39 @@ function App() {
   const [deliverySyncError, setDeliverySyncError] = useState("");
   const [activeView, setActiveView] = useState<
     "dashboard" | "deliveries" | "delivery-workflow" | "profile"
-  >("dashboard");
+  >(() => (window.location.pathname === "/deliveries" ? "deliveries" : "dashboard"));
   const queueBaselineReady = useRef(false);
   const previousAssignedOrderIds = useRef<Set<string>>(new Set());
+  const pushRegistrationAttemptedForUid = useRef("");
+  const deliveryQueueRef = useRef<DriverDeliveryQueue | null>(null);
+  const pendingDeliveryOrderId = useRef(
+    new URLSearchParams(window.location.search).get("orderId") ?? "",
+  );
+
+  const openDeliveryAlert = useCallback((stop: DriverDeliveryStop) => {
+    setSelectedDelivery(stop);
+    setActiveView("delivery-workflow");
+    setOrderToast(null);
+    window.history.replaceState({}, "", `/deliveries?orderId=${encodeURIComponent(stop.orderId)}`);
+  }, []);
+
+  const openPendingDeliveryFromQueue = useCallback(
+    (queue: DriverDeliveryQueue | null) => {
+      const orderId = pendingDeliveryOrderId.current;
+      if (!orderId || !queue) {
+        return;
+      }
+
+      const pendingDelivery = queue.stops.find((stop) => stop.orderId === orderId);
+      if (!pendingDelivery) {
+        return;
+      }
+
+      pendingDeliveryOrderId.current = "";
+      openDeliveryAlert(pendingDelivery);
+    },
+    [openDeliveryAlert],
+  );
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -73,7 +106,10 @@ function App() {
         setProfile(undefined);
       }
       queueBaselineReady.current = false;
+      deliveryQueueRef.current = null;
+      pendingDeliveryOrderId.current = "";
       previousAssignedOrderIds.current = new Set();
+      pushRegistrationAttemptedForUid.current = "";
       setAuthLoading(false);
     });
   }, []);
@@ -99,6 +135,7 @@ function App() {
     return subscribeDriverDeliveryQueue(authUser.uid, (nextQueue) => {
       const nextStops = nextQueue?.stops ?? [];
       const nextOrderIds = new Set(nextStops.map((stop) => stop.orderId));
+      deliveryQueueRef.current = nextQueue;
 
       if (queueBaselineReady.current) {
         const newAssignedStop = nextStops.find(
@@ -110,7 +147,9 @@ function App() {
             id: `${newAssignedStop.orderId}-${Date.now()}`,
             stop: newAssignedStop,
           });
-          void showOrderAssignmentNotification(newAssignedStop);
+          if (document.visibilityState === "visible") {
+            void showOrderAssignmentNotification(newAssignedStop);
+          }
         }
       } else {
         queueBaselineReady.current = true;
@@ -118,22 +157,45 @@ function App() {
 
       previousAssignedOrderIds.current = nextOrderIds;
       setDeliveryQueue(nextQueue);
+      openPendingDeliveryFromQueue(nextQueue);
     });
-  }, [authUser]);
+  }, [authUser, openPendingDeliveryFromQueue]);
 
   useEffect(() => {
     if (!authUser || !profile?.onboardingComplete || !profile.clockedIn) {
       return;
     }
 
-    const storageKey = `bayblaze-order-notification-permission:${authUser.uid}`;
-    if (window.localStorage.getItem(storageKey) || !("Notification" in window)) {
+    if (pushRegistrationAttemptedForUid.current === authUser.uid) {
       return;
     }
 
-    window.localStorage.setItem(storageKey, "requested");
-    void requestOrderNotificationPermission();
+    pushRegistrationAttemptedForUid.current = authUser.uid;
+    void registerDriverPushNotifications(authUser.uid);
   }, [authUser, profile?.clockedIn, profile?.onboardingComplete]);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    function handleServiceWorkerMessage(event: MessageEvent) {
+      if (
+        typeof event.data === "object" &&
+        event.data !== null &&
+        event.data.type === "bayblaze-open-delivery"
+      ) {
+        pendingDeliveryOrderId.current =
+          typeof event.data.orderId === "string" ? event.data.orderId : "";
+        setActiveView("deliveries");
+        openPendingDeliveryFromQueue(deliveryQueueRef.current);
+      }
+    }
+
+    navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
+    return () =>
+      navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+  }, [openPendingDeliveryFromQueue]);
 
   useEffect(() => {
     if (!orderToast) {
@@ -168,10 +230,13 @@ function App() {
     }
   }
 
-  function openDeliveryAlert(stop: DriverDeliveryStop) {
-    setSelectedDelivery(stop);
-    setActiveView("delivery-workflow");
-    setOrderToast(null);
+  async function handleLogout() {
+    const uid = authUser?.uid;
+    if (uid) {
+      await unregisterDriverPushNotifications(uid);
+    }
+
+    await signOut(auth);
   }
 
   if (!firebaseReady) {
@@ -209,7 +274,7 @@ function App() {
       <DriverProfileScreen
         profile={profile}
         onClockIn={() => setActiveView("dashboard")}
-        onLogout={() => void signOut(auth)}
+        onLogout={() => void handleLogout()}
       />
     );
   } else if (profile && activeView === "deliveries") {

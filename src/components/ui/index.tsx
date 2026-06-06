@@ -351,7 +351,7 @@ export function BottomNav({
             className={cx(
               "overflow-hidden",
               item.active
-                ? "border-[var(--bb-blaze)] bg-[var(--bb-blaze-soft)] text-[var(--bb-charcoal)] shadow-[var(--bb-shadow-action)]"
+                ? "border-[var(--bb-charcoal)] bg-[var(--bb-blaze-soft)] text-[var(--bb-charcoal)] shadow-none"
                 : "",
             )}
             onClick={item.onClick}

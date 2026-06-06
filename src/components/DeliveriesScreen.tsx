@@ -20,7 +20,6 @@ import {
   EmptyState,
   InlineNotice,
   LoadingState,
-  MetricCard,
   OrderCard,
   PageHeader,
   SectionHeader,
@@ -54,7 +53,6 @@ export function DeliveriesScreen({
 }) {
   const stops = queue?.stops ?? [];
   const currentStop = stops[0] ?? null;
-  const nextStop = stops[1] ?? null;
   const warehouseItemCount = currentStop?.items.filter(
     (item) => item.inventoryLocation === "warehouse",
   ).length ?? 0;
@@ -66,8 +64,7 @@ export function DeliveriesScreen({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden">
       <PageHeader
-        title="Delivery Route"
-        subtitle={currentStop ? "Priority stop is locked until completed." : undefined}
+        title="Your Route"
         actions={
           <div className="flex shrink-0 items-center gap-2">
             <Button
@@ -107,8 +104,6 @@ export function DeliveriesScreen({
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">
           <div className="grid min-w-0 gap-4 pb-4">
             <RouteStatusCard
-              currentStop={currentStop}
-              nextStop={nextStop}
               stopCount={stops.length}
             />
 
@@ -155,25 +150,20 @@ export function DeliveriesScreen({
 }
 
 function RouteStatusCard({
-  currentStop,
-  nextStop,
   stopCount,
 }: {
-  currentStop: DriverDeliveryStop | null;
-  nextStop: DriverDeliveryStop | null;
   stopCount: number;
 }) {
   return (
     <Card>
-      <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase text-[var(--bb-blaze)]">
+      <div className="flex items-center gap-2 text-xs font-black uppercase text-[var(--bb-blaze)]">
         <ShieldCheck size={15} aria-hidden="true" />
         Route status
       </div>
-      <div className="grid min-w-0 grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
-        <MetricCard label="Stops" value={stopCount} />
-        <MetricCard label="Current" value={currentStop?.eta ?? "Ready"} />
-        <MetricCard label="Next" value={nextStop?.eta ?? "None"} />
-      </div>
+      <p className="mt-3 text-xl font-semibold text-[var(--bb-charcoal)]">
+        You Have <span className="font-black">{stopCount}</span>{" "}
+        {stopCount === 1 ? "Stop" : "Stops"}
+      </p>
     </Card>
   );
 }

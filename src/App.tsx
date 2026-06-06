@@ -381,10 +381,15 @@ function App() {
     >
       <section
         className={`w-full min-w-0 max-w-full touch-pan-y flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5 ${
-          isLoginScreen ? "mx-auto w-full max-w-md justify-center" : ""
+          isLoginScreen ? "items-center justify-center" : ""
         }`}
       >
-        <div className="page-transition flex min-h-0 flex-1 flex-col" key={screenKey}>
+        <div
+          className={`page-transition flex min-h-0 flex-col ${
+            isLoginScreen ? "w-full max-w-md" : "flex-1"
+          }`}
+          key={screenKey}
+        >
           {screen}
         </div>
       </section>

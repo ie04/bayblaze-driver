@@ -236,6 +236,8 @@ type DriverDeliveryItem = {
 
 type DriverDeliveryStop = {
   orderId: string;
+  medusaOrderId?: string;
+  orderReference?: string;
   customerPhone?: string;
   customerName: string;
   customerAddress: string;
@@ -774,15 +776,31 @@ function normalizeDeliveryStop(value: unknown, index: number): DriverDeliverySto
     readArray(metadata.requested_items) ??
     [];
 
+  const orderId = readString(
+    record.orderId,
+    record.order_id,
+    record.custom_display_id,
+    record.display_id,
+    record.id,
+    `order-${index}`,
+  );
+  const medusaOrderId = readOptionalString(
+    record.medusaOrderId,
+    record.medusa_order_id,
+    record.id,
+  );
+  const orderReference = readOptionalString(
+    record.orderReference,
+    record.order_reference,
+    record.custom_display_id,
+    record.display_id,
+    orderId,
+  );
+
   return {
-    orderId: readString(
-      record.orderId,
-      record.order_id,
-      record.custom_display_id,
-      record.display_id,
-      record.id,
-      `order-${index}`,
-    ),
+    orderId,
+    medusaOrderId,
+    orderReference,
     customerPhone: readOptionalString(
       record.customerPhone,
       record.customer_phone,

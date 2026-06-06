@@ -53,7 +53,8 @@ export function DeliveryWorkflowScreen({
   const requiresWarehouse = order.items.some(
     (item) => item.inventoryLocation === "warehouse",
   );
-  const workflowStorageKey = `bayblaze-driver-workflow:${profile.uid}:${order.orderId}`;
+  const workflowOrderKey = order.medusaOrderId || order.orderId;
+  const workflowStorageKey = `bayblaze-driver-workflow:${profile.uid}:${workflowOrderKey}`;
   const savedWorkflow = readSavedWorkflow(workflowStorageKey);
   const [step, setStep] = useState<WorkflowStep>(
     savedWorkflow?.step ?? (requiresWarehouse ? "warehouse" : "items"),
@@ -116,9 +117,12 @@ export function DeliveryWorkflowScreen({
       if (type) {
         await logDeliveryAttempt({
           uid: profile.uid,
-          orderId: order.orderId,
+          orderId: order.medusaOrderId || order.orderId,
           type,
         });
+      }
+      if (nextStep === "complete") {
+        clearSavedWorkflow(workflowStorageKey);
       }
       setStep(nextStep);
     } catch (caught) {
@@ -145,10 +149,11 @@ export function DeliveryWorkflowScreen({
     try {
       await logDeliveryAttempt({
         uid: profile.uid,
-        orderId: order.orderId,
+        orderId: order.medusaOrderId || order.orderId,
         type: "cancelled",
         note: cancelReason,
       });
+      clearSavedWorkflow(workflowStorageKey);
       onReturnToRoute();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Cancellation log failed.");
@@ -169,7 +174,7 @@ export function DeliveryWorkflowScreen({
     try {
       await uploadDeliveryAttemptPhoto({
         uid: profile.uid,
-        orderId: order.orderId,
+        orderId: order.medusaOrderId || order.orderId,
         type: photoStep === "id-photo" ? "id_photo" : "merchant_invoice_photo",
         photoFile: photoAttempt,
       });
@@ -630,7 +635,12 @@ function readSavedWorkflow(key: string): SavedWorkflowState | null {
     }
 
     const parsed = JSON.parse(raw) as Partial<SavedWorkflowState>;
-    if (!parsed.step || !parsed.checkedItems || !parsed.idChecks) {
+    if (
+      !parsed.step ||
+      parsed.step === "complete" ||
+      !parsed.checkedItems ||
+      !parsed.idChecks
+    ) {
       return null;
     }
 
@@ -645,9 +655,17 @@ function readSavedWorkflow(key: string): SavedWorkflowState | null {
 }
 
 function writeSavedWorkflow(key: string, state: SavedWorkflowState) {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || state.step === "complete") {
     return;
   }
 
   window.localStorage.setItem(key, JSON.stringify(state));
+}
+
+function clearSavedWorkflow(key: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(key);
 }

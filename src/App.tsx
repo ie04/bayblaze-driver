@@ -40,6 +40,13 @@ import {
 import type { DriverDeliveryQueue, DriverDeliveryStop, DriverProfile } from "./lib/types";
 
 const ORDER_TOAST_DURATION_MS = 9_000;
+const DELIVERY_SYNC_MIN_INTERVAL_MS = 30_000;
+const DELIVERY_SYNC_POLL_INTERVAL_MS = 2 * 60 * 1000;
+
+type DeliverySyncOptions = {
+  force?: boolean;
+  silent?: boolean;
+};
 
 function App() {
   const [authUser, setAuthUser] = useState(auth.currentUser);
@@ -60,6 +67,8 @@ function App() {
   const previousAssignedOrderIds = useRef<Set<string>>(new Set());
   const pushRegistrationAttemptedForUid = useRef("");
   const deliveryQueueRef = useRef<DriverDeliveryQueue | null>(null);
+  const deliverySyncInFlight = useRef(false);
+  const lastDeliverySyncAt = useRef(0);
   const pendingDeliveryOrderId = useRef(
     new URLSearchParams(window.location.search).get("orderId") ?? "",
   );
@@ -88,6 +97,48 @@ function App() {
     },
     [openDeliveryAlert],
   );
+
+  const syncDeliveries = useCallback(async ({
+    force = false,
+    silent = false,
+  }: DeliverySyncOptions = {}) => {
+    if (deliverySyncInFlight.current) {
+      return;
+    }
+
+    const now = Date.now();
+    if (!force && now - lastDeliverySyncAt.current < DELIVERY_SYNC_MIN_INTERVAL_MS) {
+      return;
+    }
+
+    deliverySyncInFlight.current = true;
+    if (!silent) {
+      setSyncingDeliveries(true);
+      setDeliverySyncError("");
+    }
+
+    try {
+      await syncDriverDeliveryQueue();
+      lastDeliverySyncAt.current = Date.now();
+      if (silent) {
+        setDeliverySyncError("");
+      }
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Delivery sync failed.";
+
+      if (!silent) {
+        setDeliverySyncError(message);
+      } else {
+        console.warn("Background delivery sync failed.", caught);
+      }
+    } finally {
+      deliverySyncInFlight.current = false;
+      if (!silent) {
+        setSyncingDeliveries(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -157,9 +208,62 @@ function App() {
 
       previousAssignedOrderIds.current = nextOrderIds;
       setDeliveryQueue(nextQueue);
+      setSelectedDelivery((currentDelivery) => {
+        if (!currentDelivery) {
+          return currentDelivery;
+        }
+
+        const refreshedDelivery = nextStops.find((stop) =>
+          stop.orderId === currentDelivery.orderId ||
+          (stop.medusaOrderId &&
+            stop.medusaOrderId === currentDelivery.medusaOrderId) ||
+          (stop.orderReference &&
+            stop.orderReference === currentDelivery.orderReference),
+        );
+
+        return refreshedDelivery ?? null;
+      });
       openPendingDeliveryFromQueue(nextQueue);
     });
   }, [authUser, openPendingDeliveryFromQueue]);
+
+  useEffect(() => {
+    if (!authUser || !profile?.onboardingComplete || !profile.clockedIn) {
+      return;
+    }
+
+    void syncDeliveries({ force: true, silent: true });
+
+    function syncIfActive() {
+      if (!navigator.onLine || document.visibilityState !== "visible") {
+        return;
+      }
+
+      void syncDeliveries({ silent: true });
+    }
+
+    window.addEventListener("focus", syncIfActive);
+    window.addEventListener("online", syncIfActive);
+    document.addEventListener("visibilitychange", syncIfActive);
+
+    const interval = window.setInterval(
+      syncIfActive,
+      DELIVERY_SYNC_POLL_INTERVAL_MS,
+    );
+
+    return () => {
+      window.removeEventListener("focus", syncIfActive);
+      window.removeEventListener("online", syncIfActive);
+      document.removeEventListener("visibilitychange", syncIfActive);
+      window.clearInterval(interval);
+    };
+  }, [
+    authUser,
+    profile?.activeVehicleId,
+    profile?.clockedIn,
+    profile?.onboardingComplete,
+    syncDeliveries,
+  ]);
 
   useEffect(() => {
     if (!authUser || !profile?.onboardingComplete || !profile.clockedIn) {
@@ -214,21 +318,6 @@ function App() {
     const last = profile?.lastName?.[0] ?? "";
     return `${first}${last}`.toUpperCase();
   }, [authUser?.email, profile?.firstName, profile?.lastName]);
-
-  async function handleDeliverySync() {
-    setSyncingDeliveries(true);
-    setDeliverySyncError("");
-
-    try {
-      await syncDriverDeliveryQueue();
-    } catch (caught) {
-      setDeliverySyncError(
-        caught instanceof Error ? caught.message : "Delivery sync failed.",
-      );
-    } finally {
-      setSyncingDeliveries(false);
-    }
-  }
 
   async function handleLogout() {
     const uid = authUser?.uid;
@@ -288,7 +377,7 @@ function App() {
           setSelectedDelivery(stop);
           setActiveView("delivery-workflow");
         }}
-        onSync={() => void handleDeliverySync()}
+        onSync={() => void syncDeliveries({ force: true })}
       />
     );
   } else if (profile && activeView === "delivery-workflow" && selectedDelivery) {
@@ -311,7 +400,7 @@ function App() {
           setSelectedDelivery(stop);
           setActiveView("delivery-workflow");
         }}
-        onSync={() => void handleDeliverySync()}
+        onSync={() => void syncDeliveries({ force: true })}
       />
     );
   } else if (profile && !profile.activeVehicleId) {

@@ -27,6 +27,7 @@ import type {
 
 export type DeliveryAttemptLogType =
   | "warehouse_arrival"
+  | "out_for_delivery"
   | "customer_arrival"
   | "id_photo"
   | "merchant_invoice_photo"

@@ -181,9 +181,15 @@ export const handleDeliveryAttemptLog = onDocumentCreated(
       return;
     }
 
-    if (log.type === "completed" || log.type === "cancelled") {
+    if (
+      log.type === "out_for_delivery" ||
+      log.type === "completed" ||
+      log.type === "cancelled"
+    ) {
       await notifyMedusaDeliveryAttempt(log);
-      await rescoreExistingDriverQueue(log.uid);
+      if (log.type === "completed" || log.type === "cancelled") {
+        await rescoreExistingDriverQueue(log.uid);
+      }
     }
   },
 );
@@ -257,7 +263,7 @@ type DriverDeliveryQueue = {
 type DeliveryAttemptLog = {
   uid: string;
   orderId: string;
-  type: "warehouse_arrival" | "customer_arrival" | "id_photo" | "merchant_invoice_photo" | "cancelled" | "completed";
+  type: "warehouse_arrival" | "out_for_delivery" | "customer_arrival" | "id_photo" | "merchant_invoice_photo" | "cancelled" | "completed";
   note?: string | null;
   photoPath?: string | null;
   photoUrl?: string | null;

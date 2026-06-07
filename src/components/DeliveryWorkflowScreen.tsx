@@ -109,7 +109,7 @@ export function DeliveryWorkflowScreen({
     );
   }
 
-  async function logAndAdvance(nextStep: WorkflowStep, type?: "warehouse_arrival" | "customer_arrival" | "completed") {
+  async function logAndAdvance(nextStep: WorkflowStep, type?: "warehouse_arrival" | "out_for_delivery" | "customer_arrival" | "completed") {
     setSavingEvent(true);
     setError("");
 
@@ -252,7 +252,11 @@ export function DeliveryWorkflowScreen({
               }
             />
           </div>
-          <PrimaryButton disabled={!allItemsChecked} onClick={() => setStep("drive")}>
+          <PrimaryButton
+            disabled={!allItemsChecked}
+            loading={savingEvent}
+            onClick={() => void logAndAdvance("drive", "out_for_delivery")}
+          >
             Next
           </PrimaryButton>
         </StepShell>

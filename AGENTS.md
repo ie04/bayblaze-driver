@@ -73,9 +73,9 @@ Suggested collections:
 - `driver_signup_codes/{emailKey}`: backend-owned short-lived verification
   challenge state. Store hashed codes only, never raw codes.
 - `delivery_attempt_logs/{logId}`: timestamped driver delivery attempt events
-  such as warehouse/customer arrival, ID photo, merchant invoice photo,
-  cancellations, and completions. Driver clients may create logs for their own
-  UID only.
+  such as warehouse/customer arrival, `out_for_delivery`, ID photo, merchant
+  invoice photo, cancellations, and completions. Driver clients may create logs
+  for their own UID only.
 
 Firestore rules keep vehicle records dispatch-owned, but signed-in drivers may
 update only `linkedDriverUid`, `linkedAt`, and `updatedAt` to claim an active,
@@ -108,11 +108,13 @@ linked to their own UID during clock-out.
 - Delivery attempt photos are stored under
   `delivery-attempt-photos/{uid}/{orderId}/...` and referenced from
   `delivery_attempt_logs`.
-- Terminal driver delivery attempt logs (`completed` and `cancelled`) are sent
-  by Firebase Functions to Medusa `/admin/bayblaze/delivery-attempts`. Medusa
-  persists terminal state on order metadata as `bayblaze_delivery_status` plus
-  driver/timestamp fields, and the Medusa driver queue route excludes those
-  orders from future syncs.
+- Driver delivery attempt logs `out_for_delivery`, `completed`, and `cancelled`
+  are sent by Firebase Functions to Medusa `/admin/bayblaze/delivery-attempts`.
+  Completing the Add items to box step must create an `out_for_delivery` log so
+  customer storefront order progress can mark Out for delivery. Medusa persists
+  `bayblaze_delivery_status` plus driver/timestamp fields on order metadata.
+  Only terminal statuses (`completed` and `cancelled`) should trigger driver
+  queue rescoring/removal behavior.
 - Driver assignment alerts use two layers: the foreground PWA watches the
   authenticated `driver_delivery_queues/{uid}` snapshot and shows an in-app
   toast when a new order ID appears after the initial queue baseline, while
@@ -223,3 +225,22 @@ Shared brand tokens live in `src/index.css` as `--bb-*` variables with Tailwind
 v4 `@theme` entries. Prefer these primitives and tokens for new driver UI
 instead of repeating raw color, shadow, radius, input, button, card, badge,
 empty/loading/error, metric, order-card, or bottom-nav class stacks.
+
+## June 2026 PWA Refresh and Delivery Lifecycle Contract
+
+- The installed driver PWA must not rely on stale cached route/order state. A
+  clocked-in driver should sync the delivery queue on app open, focus, online,
+  visibility change, and periodically while active.
+- When Firestore `driver_delivery_queues/{uid}` updates, reconcile any open
+  `selectedDelivery` object against the fresh queue entry by order ID/reference
+  rather than keeping an old React object.
+- Service worker updates should eventually refresh the installed PWA shell
+  through a `controllerchange` reload path so deployed fixes reach installed
+  apps without manual cache clearing.
+- The Add items to box step is the business transition to `out_for_delivery`.
+  The button should not merely advance local UI state; it must log the
+  `out_for_delivery` delivery attempt before moving to the drive step.
+- Firebase Functions should forward `out_for_delivery`, `completed`, and
+  `cancelled` to Medusa. Only `completed` and `cancelled` are terminal and should
+  rescore/remove completed queue stops.
+

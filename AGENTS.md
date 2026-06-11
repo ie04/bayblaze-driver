@@ -176,11 +176,15 @@ linked to their own UID during clock-out.
 - Server-only function configuration includes `RESEND_API_KEY` and a verified
   sender address such as `DRIVER_EMAIL_FROM`.
 - Server-only Medusa/IsoChronos integration variables belong in Firebase
-  Functions only: `MEDUSA_BACKEND_URL`, `MEDUSA_ADMIN_API_TOKEN`,
-  `MEDUSA_DRIVER_QUEUE_PATH`, `MEDUSA_DELIVERY_ATTEMPT_PATH`,
-  `ISOCHRONOS_API_URL`, `ISOCHRONOS_ADMIN_TOKEN`,
-  `ISOCHRONOS_QUEUE_SCORE_PATH`, and `ISOCHRONOS_DRIVER_LOCATION_PATH`.
-  Never expose these through `VITE_` frontend variables.
+  Functions only. Functions now prefer the shared API layer through
+  `BAYBLAZE_API_URL` and `BAYBLAZE_API_SERVICE_TOKEN` for driver queue fetches,
+  queue scoring, delivery attempt forwarding, and driver location forwarding.
+  Direct Medusa/IsoChronos variables remain supported as rollout fallbacks:
+  `MEDUSA_BACKEND_URL`, `MEDUSA_ADMIN_API_TOKEN`, `MEDUSA_DRIVER_QUEUE_PATH`,
+  `MEDUSA_DELIVERY_ATTEMPT_PATH`, `ISOCHRONOS_API_URL`,
+  `ISOCHRONOS_ADMIN_TOKEN`, `ISOCHRONOS_QUEUE_SCORE_PATH`, and
+  `ISOCHRONOS_DRIVER_LOCATION_PATH`. Never expose these through `VITE_`
+  frontend variables.
 - The Firebase Functions `ISOCHRONOS_ADMIN_TOKEN` must match the
   `ISOCHRONOS_ADMIN_TOKEN` GitHub Actions secret in `ie04/bayblaze-isochronos`;
   otherwise driver queue scoring and live-location updates will receive
@@ -243,4 +247,3 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - Firebase Functions should forward `out_for_delivery`, `completed`, and
   `cancelled` to Medusa. Only `completed` and `cancelled` are terminal and should
   rescore/remove completed queue stops.
-

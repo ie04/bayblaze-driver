@@ -479,6 +479,27 @@ async function fetchMedusaDriverQueue(
   uid: string,
   { includeUnassigned = false }: { includeUnassigned?: boolean } = {},
 ): Promise<DriverDeliveryQueue> {
+  const apiUrl = getBayblazeApiUrl();
+  const apiToken = getBayblazeApiToken();
+
+  if (apiUrl && apiToken) {
+    const url = new URL(`/v1/drivers/${encodeURIComponent(uid)}/queue`, apiUrl);
+    if (includeUnassigned) {
+      url.searchParams.set("include_unassigned", "true");
+    }
+
+    const response = await fetch(url, {
+      headers: buildBayblazeApiHeaders(apiToken, "GET"),
+    });
+
+    if (!response.ok) {
+      throw bayblazeApiSyncError("queue sync", response.status);
+    }
+
+    const payload = (await response.json()) as unknown;
+    return normalizeDriverQueuePayload(uid, payload);
+  }
+
   const baseUrl = process.env.MEDUSA_BACKEND_URL;
   const token = process.env.MEDUSA_ADMIN_API_TOKEN;
   const pathTemplate =
@@ -509,6 +530,25 @@ async function scoreQueueWithIsoChronos(
   uid: string,
   queue: DriverDeliveryQueue,
 ): Promise<DriverDeliveryQueue> {
+  const apiUrl = getBayblazeApiUrl();
+  const apiToken = getBayblazeApiToken();
+
+  if (apiUrl && apiToken && queue.stops.length > 2) {
+    const response = await fetch(new URL("/v1/drivers/queues/score", apiUrl), {
+      method: "POST",
+      headers: buildBayblazeApiHeaders(apiToken, "POST"),
+      body: JSON.stringify({ uid, queue }),
+    });
+
+    if (!response.ok) {
+      logger.warn("BayBlaze API queue scoring failed", { uid, status: response.status });
+      return { ...queue, stops: lockQueueHead(queue.stops) };
+    }
+
+    const payload = (await response.json()) as unknown;
+    return normalizeDriverQueuePayload(uid, payload);
+  }
+
   const baseUrl = process.env.ISOCHRONOS_API_URL;
   const token = process.env.ISOCHRONOS_ADMIN_TOKEN;
   const path = process.env.ISOCHRONOS_QUEUE_SCORE_PATH ?? "/driver-queues/score";
@@ -560,6 +600,31 @@ async function rescoreExistingDriverQueue(uid: string) {
 }
 
 async function notifyMedusaDeliveryAttempt(log: DeliveryAttemptLog) {
+  const apiUrl = getBayblazeApiUrl();
+  const apiToken = getBayblazeApiToken();
+
+  if (apiUrl && apiToken) {
+    const response = await fetch(new URL("/v1/delivery-attempts", apiUrl), {
+      method: "POST",
+      headers: buildBayblazeApiHeaders(apiToken, "POST"),
+      body: JSON.stringify(log),
+    });
+
+    if (!response.ok) {
+      const responseBody = await response.text().catch(() => "");
+      logger.error("BayBlaze API delivery attempt update failed", {
+        uid: log.uid,
+        orderId: log.orderId,
+        type: log.type,
+        status: response.status,
+        responseBody: responseBody.slice(0, 500),
+      });
+      throw bayblazeApiSyncError("delivery attempt update", response.status);
+    }
+
+    return;
+  }
+
   const baseUrl = process.env.MEDUSA_BACKEND_URL;
   const token = process.env.MEDUSA_ADMIN_API_TOKEN;
   const path = process.env.MEDUSA_DELIVERY_ATTEMPT_PATH ?? "/admin/bayblaze/delivery-attempts";
@@ -621,7 +686,63 @@ function medusaSyncError(action: string, status: number) {
   );
 }
 
+function bayblazeApiSyncError(action: string, status: number) {
+  if (status === 401) {
+    return new HttpsError(
+      "permission-denied",
+      "BayBlaze API rejected the driver service token. Confirm BAYBLAZE_API_SERVICE_TOKEN matches the driver Functions configuration.",
+    );
+  }
+
+  return new HttpsError(
+    "unavailable",
+    `BayBlaze API ${action} failed with HTTP ${status}.`,
+  );
+}
+
+function getBayblazeApiUrl() {
+  return process.env.BAYBLAZE_API_URL?.replace(/\/$/, "");
+}
+
+function getBayblazeApiToken() {
+  return process.env.BAYBLAZE_API_SERVICE_TOKEN;
+}
+
+function buildBayblazeApiHeaders(token: string, method: "GET" | "POST") {
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${token}`,
+  };
+
+  if (method === "GET") {
+    headers.accept = "application/json";
+  } else {
+    headers["content-type"] = "application/json";
+  }
+
+  return headers;
+}
+
 async function notifyIsoChronosLocation(snapshot: DriverLocationSnapshot) {
+  const apiUrl = getBayblazeApiUrl();
+  const apiToken = getBayblazeApiToken();
+
+  if (apiUrl && apiToken) {
+    const response = await fetch(new URL("/v1/drivers/location", apiUrl), {
+      method: "POST",
+      headers: buildBayblazeApiHeaders(apiToken, "POST"),
+      body: JSON.stringify(snapshot),
+    });
+
+    if (!response.ok) {
+      logger.warn("BayBlaze API driver location update failed", {
+        uid: snapshot.uid,
+        status: response.status,
+      });
+    }
+
+    return;
+  }
+
   const baseUrl = process.env.ISOCHRONOS_API_URL;
   const token = process.env.ISOCHRONOS_ADMIN_TOKEN;
   const path = process.env.ISOCHRONOS_DRIVER_LOCATION_PATH ?? "/driver-locations";

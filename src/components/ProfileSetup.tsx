@@ -55,6 +55,7 @@ export function ProfileSetup({
         phoneNumber,
         bio,
         photoFile,
+        existingProfile: profile,
       });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Profile setup failed.");

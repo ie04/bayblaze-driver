@@ -26,9 +26,13 @@ Core stack:
 - React, TypeScript, Vite, Tailwind CSS.
 - PWA support through Vite.
 - Firebase Authentication for accounts, login, and passwords.
-- Firestore for driver allowlist, profiles, onboarding, vehicle links,
-  clock-in/out state, live location snapshots, and dashboard/order references.
-- Firebase Storage for required driver profile photos when configured.
+- `bayblaze-api` for driver allowlist/profile, onboarding, vehicle links,
+  clock-in/out state, live location snapshots, queue state, delivery attempts,
+  and notification-token registration. Firestore remains the backend store, but
+  the browser app should not import Firestore collection names or read/write
+  Firestore docs directly.
+- Firebase Storage for required driver profile photos during the current
+  rollout; long-term uploads should move behind `bayblaze-api` too.
 - Firebase Functions for privileged backend work such as Resend verification
   emails and Auth account creation.
 
@@ -50,7 +54,7 @@ Core stack:
 - Password requirements: at least 12 characters, includes letters and numbers,
   and includes at least one symbol. Show validation feedback before submit.
 
-## Firestore Data Model
+## Backend Data Model Behind BayBlaze API
 
 Suggested collections:
 
@@ -63,24 +67,21 @@ Suggested collections:
 - `driver_location_snapshots/{uid}`: latest driver location snapshot when live
   driver location is enabled.
 - `driver_delivery_queues/{uid}`: driver-safe route queue materialized by
-  Firebase Functions from Medusa orders and IsoChronos scoring. Driver clients
-  may read only their own queue; they do not write scoring, order status, or
-  Medusa data directly.
+  `bayblaze-api` from Medusa orders and internal routing scoring. Driver clients
+  consume this through API routes; they do not read/write queue docs directly.
 - `driver_notification_tokens/{uid}/tokens/{tokenId}`: driver-owned Firebase
-  Cloud Messaging web tokens for closed-app delivery assignment push. Drivers
-  may create/update/delete only their own token docs; backend Functions read
-  them to send assignment alerts and remove invalid tokens.
+  Cloud Messaging web tokens for closed-app delivery assignment push. Driver
+  clients register/unregister tokens through `bayblaze-api`.
 - `driver_signup_codes/{emailKey}`: backend-owned short-lived verification
   challenge state. Store hashed codes only, never raw codes.
 - `delivery_attempt_logs/{logId}`: timestamped driver delivery attempt events
   such as warehouse/customer arrival, `out_for_delivery`, ID photo, merchant
-  invoice photo, cancellations, and completions. Driver clients may create logs
-  for their own UID only.
+  invoice photo, cancellations, and completions. Driver clients create logs
+  through `bayblaze-api`.
 
-Firestore rules keep vehicle records dispatch-owned, but signed-in drivers may
-update only `linkedDriverUid`, `linkedAt`, and `updatedAt` to claim an active,
-currently unlinked vehicle for themselves, or to release a vehicle currently
-linked to their own UID during clock-out.
+Vehicle linking and release are API-mediated. The driver browser should call
+`bayblaze-api` instead of relying on Firestore rules to protect partial document
+updates.
 
 ## Driver Workflow Rules
 
@@ -88,10 +89,10 @@ linked to their own UID during clock-out.
   profile photo before onboarding can complete.
 - A driver must link to an available vehicle before clocking in.
 - A driver must be clocked in to appear active.
-- While clocked in with an active vehicle, the driver PWA streams live location
-  to `driver_location_snapshots/{uid}` with throttled browser geolocation
-  updates. Firestore is the frontend live-location bus; IsoChronos routing/ETA
-  processing must consume these snapshots server-side.
+- While clocked in with an active vehicle, the driver PWA sends throttled
+  browser geolocation updates to `bayblaze-api`; the API writes
+  `driver_location_snapshots/{uid}` server-side and routing/ETA processing
+  consumes those snapshots internally.
 - Clocking out must mark the driver clocked out, unlink the driver from the
   vehicle, and free that vehicle for another driver.
 - Vehicle selection is required again on the next clock-in so one driver can use
@@ -109,18 +110,16 @@ linked to their own UID during clock-out.
   `delivery-attempt-photos/{uid}/{orderId}/...` and referenced from
   `delivery_attempt_logs`.
 - Driver delivery attempt logs `out_for_delivery`, `completed`, and `cancelled`
-  are sent by Firebase Functions to Medusa `/admin/bayblaze/delivery-attempts`.
+  are sent by `bayblaze-api` to Medusa `/admin/bayblaze/delivery-attempts`.
   Completing the Add items to box step must create an `out_for_delivery` log so
   customer storefront order progress can mark Out for delivery. Medusa persists
   `bayblaze_delivery_status` plus driver/timestamp fields on order metadata.
   Only terminal statuses (`completed` and `cancelled`) should trigger driver
   queue rescoring/removal behavior.
-- Driver assignment alerts use two layers: the foreground PWA watches the
-  authenticated `driver_delivery_queues/{uid}` snapshot and shows an in-app
-  toast when a new order ID appears after the initial queue baseline, while
-  Firebase Functions `handleDriverDeliveryQueuePush` compares queue writes and
-  sends Firebase Cloud Messaging web push to registered
-  `driver_notification_tokens/{uid}/tokens/*` for closed/background app alerts.
+- Driver assignment alerts should use API-synced queue polling or an API-owned
+  realtime channel for foreground updates. Closed/background alerts still use
+  Firebase Cloud Messaging web push, but token registration must go through
+  `bayblaze-api`, which writes `driver_notification_tokens/{uid}/tokens/*`.
   The VitePWA service worker is `src/firebase-messaging-sw.ts` and handles both
   app precache and push notification click deep links.
 
@@ -129,8 +128,8 @@ linked to their own UID during clock-out.
 - `bayblaze-storefront` remains the customer-facing commerce app.
 - `bayblaze-medusa` remains the source of truth for products, variants, orders,
   fulfillment, payment state, and inventory.
-- `bayblaze-isochronos` remains BayBlaze's backend-only delivery intelligence
-  service for geocoding, routing, delivery ETA, address autocomplete,
+- `bayblaze-isochronos` is being deconstructed into internal `bayblaze-api`
+  modules for geocoding, routing, delivery ETA, address autocomplete,
   geographic partitioning, and Google Maps usage guardrails.
 - `bayblaze-inventory` is the staff-facing inventory PWA for routine product,
   variant, stock count, metadata, and vehicle assignment workflows. It must act
@@ -138,14 +137,14 @@ linked to their own UID during clock-out.
   inventory state.
 - The driver app must not call paid Google Maps APIs directly from browser code
   and must never expose server-side Google Maps API keys.
-- Driver delivery UI should consume Medusa/order references and IsoChronos ETA
-  snapshots or interpolation-friendly data through backend/API boundaries.
+- Driver delivery UI should consume Medusa/order references and routing/ETA
+  snapshots or interpolation-friendly data through `bayblaze-api` boundaries.
 - Keep delivery intelligence, coordinates, route cache behavior, and Google
   Maps cost controls out of React page components.
-- Temporary solo-driver dispatch fallback: `syncDriverDeliveryQueue` checks
-  Firestore for active, onboarded, clocked-in drivers with linked vehicles. If
-  exactly one exists and it is the requesting UID, Firebase Functions calls the
-  Medusa driver queue route with `include_unassigned=true` so currently
+- Temporary solo-driver dispatch fallback: `syncDriverDeliveryQueue` in
+  `bayblaze-api` checks Firestore for active, onboarded, clocked-in drivers with
+  linked vehicles. If exactly one exists and it is the requesting UID, the API
+  calls the Medusa driver queue route with `include_unassigned=true` so currently
   unassigned open orders appear for that driver. With multiple active drivers,
   only explicitly assigned Medusa orders are returned until a dedicated
   dispatch/partitioning service assigns unassigned orders.
@@ -175,26 +174,25 @@ linked to their own UID during clock-out.
   `VITE_FIREBASE_VAPID_KEY` for Firebase Cloud Messaging Web Push.
 - Server-only function configuration includes `RESEND_API_KEY` and a verified
   sender address such as `DRIVER_EMAIL_FROM`.
-- Server-only Medusa/IsoChronos integration variables belong in Firebase
-  Functions only. Functions now prefer the shared API layer through
-  `BAYBLAZE_API_URL` and `BAYBLAZE_API_SERVICE_TOKEN` for driver queue fetches,
-  queue scoring, delivery attempt forwarding, and driver location forwarding.
-  Direct Medusa/IsoChronos variables remain supported as rollout fallbacks:
+- Server-only Medusa/routing integration variables belong in `bayblaze-api`.
+  Firebase Functions now exist only as rollout fallback for signup email/Auth
+  work until those workflows are API-hosted too. Driver queue fetches, queue
+  scoring, delivery attempt forwarding, and driver location forwarding should
+  move to direct driver calls to `bayblaze-api` using Firebase ID-token auth.
+  Direct Medusa/IsoChronos variables remain supported as legacy fallbacks:
   `MEDUSA_BACKEND_URL`, `MEDUSA_ADMIN_API_TOKEN`, `MEDUSA_DRIVER_QUEUE_PATH`,
   `MEDUSA_DELIVERY_ATTEMPT_PATH`, `ISOCHRONOS_API_URL`,
   `ISOCHRONOS_ADMIN_TOKEN`, `ISOCHRONOS_QUEUE_SCORE_PATH`, and
   `ISOCHRONOS_DRIVER_LOCATION_PATH`. Never expose these through `VITE_`
   frontend variables.
-- The Firebase Functions `ISOCHRONOS_ADMIN_TOKEN` must match the
-  `ISOCHRONOS_ADMIN_TOKEN` GitHub Actions secret in `ie04/bayblaze-isochronos`;
-  otherwise driver queue scoring and live-location updates will receive
-  IsoChronos HTTP 401 responses.
+- The old Firebase Functions `ISOCHRONOS_ADMIN_TOKEN` contract is deprecated as
+  IsoChronos modules move into `bayblaze-api`.
 - Firebase Functions send `MEDUSA_ADMIN_API_TOKEN` to Medusa as both
   `Authorization: Bearer ...` and `x-bayblaze-service-token`. Custom Medusa
   driver integration routes under `/admin` must export `AUTHENTICATE = false`
   and validate `x-bayblaze-service-token` themselves; otherwise Medusa's default
   admin auth rejects driver queue sync with HTTP 401 before route code runs.
-- Current production backend service URLs:
+- Legacy production backend service URLs:
   `MEDUSA_BACKEND_URL=https://api.bayblaze.net` and
   `ISOCHRONOS_API_URL=http://api.bayblaze.net:3030`.
 - Firebase Functions production env is stored locally in
@@ -209,7 +207,7 @@ linked to their own UID during clock-out.
   `/home/codex-deploy/bayblaze/isochronos/runner`. The active Medusa checkout
   and compose project are under `/opt/bayblaze/medusa`, owned by
   `github-runner`.
-- Running VPS Docker Compose projects: `isochronos` uses
+- Legacy VPS Docker Compose projects: `isochronos` uses
   `/home/codex-deploy/bayblaze/isochronos/current/docker-compose.prod.yml`;
   `medusa` uses `/opt/bayblaze/medusa/docker-compose.yml`.
 
@@ -235,7 +233,7 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - The installed driver PWA must not rely on stale cached route/order state. A
   clocked-in driver should sync the delivery queue on app open, focus, online,
   visibility change, and periodically while active.
-- When Firestore `driver_delivery_queues/{uid}` updates, reconcile any open
+- When API-synced driver queue data updates, reconcile any open
   `selectedDelivery` object against the fresh queue entry by order ID/reference
   rather than keeping an old React object.
 - Service worker updates should eventually refresh the installed PWA shell
@@ -244,6 +242,6 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - The Add items to box step is the business transition to `out_for_delivery`.
   The button should not merely advance local UI state; it must log the
   `out_for_delivery` delivery attempt before moving to the drive step.
-- Firebase Functions should forward `out_for_delivery`, `completed`, and
-  `cancelled` to Medusa. Only `completed` and `cancelled` are terminal and should
-  rescore/remove completed queue stops.
+- `bayblaze-api` should forward `out_for_delivery`, `completed`, and
+  `cancelled` to Medusa. Only `completed` and `cancelled` are terminal and
+  should rescore/remove completed queue stops.

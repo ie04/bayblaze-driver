@@ -2,7 +2,7 @@ import { type FormEvent, useMemo, useState } from "react";
 import { Check, KeyRound, Mail, ShieldCheck } from "lucide-react";
 
 import { Button, Card, ErrorState, Input, InlineNotice } from "./ui";
-import { createAllowedDriverAccount, getAllowlistStatus, requestDriverAccess } from "../lib/driverAccess";
+import { createAllowedDriverAccount, requestDriverAccess } from "../lib/driverAccess";
 import { normalizeEmail } from "../lib/email";
 import { isValidPassword, validatePassword } from "../lib/password";
 
@@ -34,13 +34,6 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
 
     try {
       const nextEmail = normalizeEmail(email);
-      const allowlist = await getAllowlistStatus(nextEmail);
-
-      if (!allowlist.allowed) {
-        setError("This email has not been approved for BayBlaze driver access.");
-        return;
-      }
-
       const mode = await requestDriverAccess(nextEmail);
       setEmail(nextEmail);
 

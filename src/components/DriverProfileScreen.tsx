@@ -24,7 +24,7 @@ export function DriverProfileScreen({
     setError("");
 
     try {
-      await clockOutDriver(profile);
+      await clockOutDriver();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Clock-out failed.");
       setClockingOut(false);

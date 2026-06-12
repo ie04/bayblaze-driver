@@ -1,7 +1,7 @@
-import { deleteDoc, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { deleteToken, getMessaging, getToken, isSupported } from "firebase/messaging";
 
-import { app, db } from "./firebase";
+import { driverApiDelete, driverApiPost } from "./driverApi";
+import { app } from "./firebase";
 
 export type DriverPushRegistrationResult =
   | "registered"
@@ -11,7 +11,7 @@ export type DriverPushRegistrationResult =
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined;
 
-export async function registerDriverPushNotifications(uid: string) {
+export async function registerDriverPushNotifications() {
   if (!vapidKey) {
     return "missing-vapid-key" satisfies DriverPushRegistrationResult;
   }
@@ -36,23 +36,17 @@ export async function registerDriverPushNotifications(uid: string) {
     return "unsupported" satisfies DriverPushRegistrationResult;
   }
 
-  await setDoc(
-    doc(db, "driver_notification_tokens", uid, "tokens", tokenToDocId(token)),
-    {
-      uid,
-      token,
-      platform: navigator.platform || "web",
-      userAgent: navigator.userAgent,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await driverApiPost("/v1/driver/me/notification-tokens", {
+    tokenId: tokenToDocId(token),
+    token,
+    platform: navigator.platform || "web",
+    userAgent: navigator.userAgent,
+  });
 
   return "registered" satisfies DriverPushRegistrationResult;
 }
 
-export async function unregisterDriverPushNotifications(uid: string) {
+export async function unregisterDriverPushNotifications() {
   if (!(await canUseMessaging())) {
     return;
   }
@@ -65,7 +59,7 @@ export async function unregisterDriverPushNotifications(uid: string) {
   }
 
   await Promise.allSettled([
-    deleteDoc(doc(db, "driver_notification_tokens", uid, "tokens", tokenToDocId(token))),
+    driverApiDelete(`/v1/driver/me/notification-tokens/${encodeURIComponent(tokenToDocId(token))}`),
     deleteToken(messaging),
   ]);
 }

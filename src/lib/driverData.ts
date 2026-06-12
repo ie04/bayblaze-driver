@@ -1,23 +1,8 @@
 import type { User } from "firebase/auth";
-import {
-  addDoc,
-  collection,
-  deleteField,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
-import { db, functions, storage } from "./firebase";
+import { storage } from "./firebase";
+import { driverApiGet, driverApiPost, driverApiPut } from "./driverApi";
 import type {
   DriverDeliveryQueue,
   DriverLocationSnapshot,
@@ -34,32 +19,31 @@ export type DeliveryAttemptLogType =
   | "cancelled"
   | "completed";
 
-const syncDriverDeliveryQueueCallable = httpsCallable<void, { stopCount: number }>(
-  functions,
-  "syncDriverDeliveryQueue",
-);
+const subscriptionPollMs = 5_000;
 
 export function subscribeDriverProfile(
-  uid: string,
+  _uid: string,
   onChange: (profile: DriverProfile | null) => void,
 ) {
-  return onSnapshot(doc(db, "driver_profiles", uid), (snapshot) => {
-    onChange(snapshot.exists() ? (snapshot.data() as DriverProfile) : null);
+  return pollDriverResource(async () => {
+    const payload = await driverApiGet<{ profile: DriverProfile | null }>("/v1/driver/me/profile");
+    onChange(payload.profile);
   });
 }
 
 export function subscribeDriverDeliveryQueue(
-  uid: string,
+  _uid: string,
   onChange: (queue: DriverDeliveryQueue | null) => void,
 ) {
-  return onSnapshot(doc(db, "driver_delivery_queues", uid), (snapshot) => {
-    onChange(snapshot.exists() ? (snapshot.data() as DriverDeliveryQueue) : null);
+  return pollDriverResource(async () => {
+    const payload = await driverApiGet<{ queue: DriverDeliveryQueue | null }>("/v1/driver/me/queue");
+    onChange(payload.queue);
   });
 }
 
 export async function syncDriverDeliveryQueue() {
-  const result = await syncDriverDeliveryQueueCallable();
-  return result.data;
+  const payload = await driverApiPost<{ stopCount: number }>("/v1/driver/me/queue/sync");
+  return { stopCount: payload.stopCount };
 }
 
 export async function saveDriverProfile({
@@ -69,6 +53,7 @@ export async function saveDriverProfile({
   phoneNumber,
   bio,
   photoFile,
+  existingProfile,
 }: {
   user: User;
   firstName: string;
@@ -76,11 +61,8 @@ export async function saveDriverProfile({
   phoneNumber: string;
   bio: string;
   photoFile: File | null;
+  existingProfile?: DriverProfile | null;
 }) {
-  const profileRef = doc(db, "driver_profiles", user.uid);
-  const existing = await getDoc(profileRef);
-  const existingProfile = existing.exists() ? (existing.data() as DriverProfile) : null;
-
   let profilePhotoPath = existingProfile?.profilePhotoPath;
   let profilePhotoUrl = existingProfile?.profilePhotoUrl;
 
@@ -102,62 +84,25 @@ export async function saveDriverProfile({
     throw new Error("Profile photo is required.");
   }
 
-  await setDoc(
-    profileRef,
-    {
-      uid: user.uid,
-      email: user.email ?? "",
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      phoneNumber: phoneNumber.trim(),
-      bio: bio.trim(),
-      profilePhotoPath,
-      profilePhotoUrl,
-      onboardingComplete: true,
-      clockedIn: false,
-      createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await driverApiPut("/v1/driver/me/profile", {
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    phoneNumber: phoneNumber.trim(),
+    bio: bio.trim(),
+    profilePhotoPath,
+    profilePhotoUrl,
+  });
 }
 
 export async function listAvailableVehicles() {
-  const vehiclesQuery = query(collection(db, "vehicles"), where("active", "==", true));
-  const snapshot = await getDocs(vehiclesQuery);
-
-  return snapshot.docs
-    .map((vehicleDoc) => vehicleDoc.data() as VehicleRecord)
-    .filter((vehicle) => !vehicle.linkedDriverUid)
-    .sort((first, second) => first.label.localeCompare(second.label));
+  const payload = await driverApiGet<{ vehicles: VehicleRecord[] }>(
+    "/v1/driver/me/vehicles/available",
+  );
+  return payload.vehicles;
 }
 
-export async function linkVehicleToDriver(profile: DriverProfile, vehicleId: string) {
-  await runTransaction(db, async (transaction) => {
-    const profileRef = doc(db, "driver_profiles", profile.uid);
-    const vehicleRef = doc(db, "vehicles", vehicleId);
-    const vehicleSnapshot = await transaction.get(vehicleRef);
-
-    if (!vehicleSnapshot.exists()) {
-      throw new Error("Vehicle is no longer available.");
-    }
-
-    const vehicle = vehicleSnapshot.data() as VehicleRecord;
-    if (!vehicle.active || vehicle.linkedDriverUid) {
-      throw new Error("Vehicle is already linked.");
-    }
-
-    transaction.update(vehicleRef, {
-      linkedDriverUid: profile.uid,
-      linkedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    transaction.update(profileRef, {
-      activeVehicleId: vehicleId,
-      updatedAt: serverTimestamp(),
-    });
-  });
+export async function linkVehicleToDriver(_profile: DriverProfile, vehicleId: string) {
+  await driverApiPost("/v1/driver/me/vehicles/link", { vehicleId });
 }
 
 export async function clockInDriver(profile: DriverProfile) {
@@ -165,49 +110,11 @@ export async function clockInDriver(profile: DriverProfile) {
     throw new Error("Select a vehicle before clocking in.");
   }
 
-  await updateDoc(doc(db, "driver_profiles", profile.uid), {
-    clockedIn: true,
-    clockedInAt: serverTimestamp(),
-    clockedOutAt: deleteField(),
-    updatedAt: serverTimestamp(),
-  });
+  await driverApiPost("/v1/driver/me/clock-in");
 }
 
-export async function clockOutDriver(profile: DriverProfile) {
-  await runTransaction(db, async (transaction) => {
-    const profileRef = doc(db, "driver_profiles", profile.uid);
-    const profileSnapshot = await transaction.get(profileRef);
-
-    if (!profileSnapshot.exists()) {
-      throw new Error("Driver profile was not found.");
-    }
-
-    const currentProfile = profileSnapshot.data() as DriverProfile;
-    const vehicleId = currentProfile.activeVehicleId;
-
-    if (vehicleId) {
-      const vehicleRef = doc(db, "vehicles", vehicleId);
-      const vehicleSnapshot = await transaction.get(vehicleRef);
-
-      if (vehicleSnapshot.exists()) {
-        const vehicle = vehicleSnapshot.data() as VehicleRecord;
-        if (vehicle.linkedDriverUid === profile.uid) {
-          transaction.update(vehicleRef, {
-            linkedDriverUid: deleteField(),
-            linkedAt: deleteField(),
-            updatedAt: serverTimestamp(),
-          });
-        }
-      }
-    }
-
-    transaction.update(profileRef, {
-      activeVehicleId: deleteField(),
-      clockedIn: false,
-      clockedOutAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  });
+export async function clockOutDriver() {
+  await driverApiPost("/v1/driver/me/clock-out");
 }
 
 export async function updateDriverLocation(profile: DriverProfile) {
@@ -234,11 +141,7 @@ export async function writeDriverLocationSnapshot(
     throw new Error("A linked vehicle is required before sharing live location.");
   }
 
-  // Firestore is the browser-facing live location bus. Server-side consumers can
-  // read these snapshots and call IsoChronos without exposing backend tokens.
-  const snapshot: Omit<DriverLocationSnapshot, "updatedAt"> = {
-    uid: profile.uid,
-    vehicleId: profile.activeVehicleId,
+  const snapshot: Omit<DriverLocationSnapshot, "uid" | "vehicleId" | "updatedAt"> = {
     lat: position.coords.latitude,
     lng: position.coords.longitude,
     accuracy: position.coords.accuracy,
@@ -249,18 +152,10 @@ export async function writeDriverLocationSnapshot(
     clientCapturedAt: position.timestamp,
   };
 
-  await setDoc(
-    doc(db, "driver_location_snapshots", profile.uid),
-    {
-      ...snapshot,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await driverApiPost("/v1/driver/me/location", snapshot);
 }
 
 export async function logDeliveryAttempt({
-  uid,
   orderId,
   type,
   note,
@@ -274,14 +169,12 @@ export async function logDeliveryAttempt({
   photoPath?: string;
   photoUrl?: string;
 }) {
-  await addDoc(collection(db, "delivery_attempt_logs"), {
-    uid,
+  await driverApiPost("/v1/driver/me/delivery-attempts", {
     orderId,
     type,
-    note: note?.trim() || null,
-    photoPath: photoPath ?? null,
-    photoUrl: photoUrl ?? null,
-    createdAt: serverTimestamp(),
+    note,
+    photoPath,
+    photoUrl,
   });
 }
 
@@ -322,4 +215,28 @@ export async function uploadDeliveryAttemptPhoto({
 export function formatVehicle(vehicle: VehicleRecord) {
   const parts = [vehicle.color, vehicle.make, vehicle.model].filter(Boolean);
   return parts.length > 0 ? parts.join(" ") : "Vehicle";
+}
+
+function pollDriverResource(load: () => Promise<void>) {
+  let cancelled = false;
+
+  async function tick() {
+    try {
+      await load();
+    } catch (caught) {
+      console.warn("Driver API polling failed.", caught);
+    }
+  }
+
+  void tick();
+  const interval = window.setInterval(() => {
+    if (!cancelled) {
+      void tick();
+    }
+  }, subscriptionPollMs);
+
+  return () => {
+    cancelled = true;
+    window.clearInterval(interval);
+  };
 }

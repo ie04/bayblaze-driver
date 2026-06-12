@@ -1,9 +1,7 @@
-import type { Timestamp } from "firebase/firestore";
-
 export type DriverAllowlistRecord = {
   email: string;
   active: boolean;
-  createdAt?: Timestamp;
+  createdAt?: unknown;
   createdBy?: string;
   notes?: string;
 };
@@ -20,10 +18,10 @@ export type DriverProfile = {
   onboardingComplete: boolean;
   activeVehicleId?: string;
   clockedIn: boolean;
-  clockedInAt?: Timestamp;
-  clockedOutAt?: Timestamp;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
+  clockedInAt?: unknown;
+  clockedOutAt?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
 };
 
 export type VehicleRecord = {
@@ -35,8 +33,8 @@ export type VehicleRecord = {
   color?: string;
   active: boolean;
   linkedDriverUid?: string;
-  linkedAt?: Timestamp;
-  updatedAt?: Timestamp;
+  linkedAt?: unknown;
+  updatedAt?: unknown;
 };
 
 export type DriverLocationSnapshot = {
@@ -50,7 +48,7 @@ export type DriverLocationSnapshot = {
   clockedIn: true;
   source: "driver-pwa";
   clientCapturedAt: number;
-  updatedAt?: Timestamp;
+  updatedAt?: unknown;
 };
 
 export type DeliveryItemInventoryLocation = "vehicle" | "warehouse";
@@ -86,7 +84,7 @@ export type DriverDeliveryQueue = {
   uid: string;
   activeOrderId?: string;
   stops: DriverDeliveryStop[];
-  updatedAt?: Timestamp;
+  updatedAt?: unknown;
 };
 
 export type DriverSignupMode = "login" | "code_sent";

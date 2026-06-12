@@ -232,7 +232,9 @@ function App() {
       return;
     }
 
-    void syncDeliveries({ force: true, silent: true });
+    window.setTimeout(() => {
+      void syncDeliveries({ force: true, silent: true });
+    }, 0);
 
     function syncIfActive() {
       if (!navigator.onLine || document.visibilityState !== "visible") {
@@ -275,7 +277,7 @@ function App() {
     }
 
     pushRegistrationAttemptedForUid.current = authUser.uid;
-    void registerDriverPushNotifications(authUser.uid);
+    void registerDriverPushNotifications();
   }, [authUser, profile?.clockedIn, profile?.onboardingComplete]);
 
   useEffect(() => {
@@ -320,9 +322,8 @@ function App() {
   }, [authUser?.email, profile?.firstName, profile?.lastName]);
 
   async function handleLogout() {
-    const uid = authUser?.uid;
-    if (uid) {
-      await unregisterDriverPushNotifications(uid);
+    if (authUser) {
+      await unregisterDriverPushNotifications();
     }
 
     await signOut(auth);

@@ -129,8 +129,9 @@ updates.
 - `bayblaze-admin` is the operator dashboard for account roles/settings,
   live drivers, driver routes, isochrone plots, and live order details. It lives
   at `admin.bayblaze.net` and must call `bayblaze-api` only.
-- `bayblaze-medusa` remains the source of truth for products, variants, orders,
-  fulfillment, payment state, and inventory.
+- Embedded Medusa under `bayblaze-api/medusa` remains the source of truth for
+  products, variants, orders, fulfillment, payment state, and inventory. The old
+  standalone `bayblaze-medusa` repo is retired.
 - IsoChronos-derived geocoding, routing, delivery ETA, address autocomplete,
   geographic partitioning, and Google Maps usage guardrails are internal
   `bayblaze-api` modules for app-facing workflows.

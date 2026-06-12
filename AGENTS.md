@@ -126,9 +126,9 @@ updates.
 - `bayblaze-storefront` remains the customer-facing commerce app.
 - `bayblaze-medusa` remains the source of truth for products, variants, orders,
   fulfillment, payment state, and inventory.
-- `bayblaze-isochronos` is being deconstructed into internal `bayblaze-api`
-  modules for geocoding, routing, delivery ETA, address autocomplete,
-  geographic partitioning, and Google Maps usage guardrails.
+- IsoChronos-derived geocoding, routing, delivery ETA, address autocomplete,
+  geographic partitioning, and Google Maps usage guardrails are internal
+  `bayblaze-api` modules for app-facing workflows.
 - `bayblaze-inventory` is the staff-facing inventory PWA for routine product,
   variant, stock count, metadata, and vehicle assignment workflows. It must act
   through a trusted backend/Medusa boundary and must not store separate commerce
@@ -159,27 +159,17 @@ updates.
 - Required local frontend variable:
   `VITE_BAYBLAZE_API_URL=http://localhost:3040`.
 - Server-only driver auth, Resend, Firebase Admin, Medusa, and routing
-  integration variables belong in `bayblaze-api`. Direct Medusa/IsoChronos
-  variables remain supported there as legacy fallbacks:
+  integration variables belong in `bayblaze-api`. Direct Medusa variables remain
+  supported there as legacy fallbacks:
   `MEDUSA_BACKEND_URL`, `MEDUSA_ADMIN_API_TOKEN`, `MEDUSA_DRIVER_QUEUE_PATH`,
-  `MEDUSA_DELIVERY_ATTEMPT_PATH`, `ISOCHRONOS_API_URL`,
-  `ISOCHRONOS_ADMIN_TOKEN`, `ISOCHRONOS_QUEUE_SCORE_PATH`, and
-  `ISOCHRONOS_DRIVER_LOCATION_PATH`. Never expose these through `VITE_`
+  and `MEDUSA_DELIVERY_ATTEMPT_PATH`. Never expose these through `VITE_`
   frontend variables.
-- Legacy production backend service URLs:
-  `MEDUSA_BACKEND_URL=https://api.bayblaze.net` and
-  `ISOCHRONOS_API_URL=http://api.bayblaze.net:3030`.
+- Legacy production backend service URL:
+  `MEDUSA_BACKEND_URL=https://api.bayblaze.net`.
 - Hetzner VPS SSH from this workstation:
   `ssh -i ~/.ssh/codex_vps_ed25519 codex-deploy@178.156.179.156`.
-- Stable VPS service pointers live under `/home/codex-deploy/bayblaze`:
-  IsoChronos current checkout at
-  `/home/codex-deploy/bayblaze/isochronos/current`, IsoChronos runner at
-  `/home/codex-deploy/bayblaze/isochronos/runner`. The active Medusa checkout
-  and compose project are under `/opt/bayblaze/medusa`, owned by
-  `github-runner`.
-- Legacy VPS Docker Compose projects: `isochronos` uses
-  `/home/codex-deploy/bayblaze/isochronos/current/docker-compose.prod.yml`;
-  `medusa` uses `/opt/bayblaze/medusa/docker-compose.yml`.
+- The active Medusa checkout and compose project are under `/opt/bayblaze/medusa`,
+  owned by `github-runner`.
 
 ## Local Commands
 

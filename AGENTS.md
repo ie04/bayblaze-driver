@@ -46,7 +46,9 @@ Core stack:
 - The allowlist gates signup/onboarding. If an email is not active in
   `driver_allowlist`, the app should deny access with clear driver-facing copy.
 - Existing Auth users sign in by calling `bayblaze-api`, which validates
-  email/password server-side and returns a driver session token.
+  email/password server-side, ensures an `accounts/{uid}` record with the
+  `driver` role, and returns a BayBlaze account session token that is accepted
+  by driver workflow routes.
 - New allowlisted drivers verify an emailed code through the backend, create a
   password that satisfies BayBlaze requirements, and have their account created
   by `bayblaze-api`.
@@ -124,6 +126,9 @@ updates.
 ## Cross-Repo Boundaries
 
 - `bayblaze-storefront` remains the customer-facing commerce app.
+- `bayblaze-admin` is the operator dashboard for account roles/settings,
+  live drivers, driver routes, isochrone plots, and live order details. It lives
+  at `admin.bayblaze.net` and must call `bayblaze-api` only.
 - `bayblaze-medusa` remains the source of truth for products, variants, orders,
   fulfillment, payment state, and inventory.
 - IsoChronos-derived geocoding, routing, delivery ETA, address autocomplete,
@@ -139,6 +144,10 @@ updates.
   snapshots or interpolation-friendly data through `bayblaze-api` boundaries.
 - Keep delivery intelligence, coordinates, route cache behavior, and Google
   Maps cost controls out of React page components.
+- BayBlaze account roles and account settings, including
+  `settings.ageVerificationDisabled`, are owned by `bayblaze-api` account
+  records in `accounts/{uid}`. Driver browser code should treat these as
+  session/account metadata from the API, not as Firestore state.
 - Temporary solo-driver dispatch fallback: `syncDriverDeliveryQueue` in
   `bayblaze-api` checks Firestore for active, onboarded, clocked-in drivers with
   linked vehicles. If exactly one exists and it is the requesting UID, the API

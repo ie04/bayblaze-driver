@@ -1,8 +1,4 @@
-import type { User } from "firebase/auth";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-
-import { storage } from "./firebase";
-import { driverApiGet, driverApiPost, driverApiPut } from "./driverApi";
+import { driverApiGet, driverApiPost, driverApiPut, driverApiUpload } from "./driverApi";
 import type {
   DriverDeliveryQueue,
   DriverLocationSnapshot,
@@ -47,7 +43,6 @@ export async function syncDriverDeliveryQueue() {
 }
 
 export async function saveDriverProfile({
-  user,
   firstName,
   lastName,
   phoneNumber,
@@ -55,7 +50,6 @@ export async function saveDriverProfile({
   photoFile,
   existingProfile,
 }: {
-  user: User;
   firstName: string;
   lastName: string;
   phoneNumber: string;
@@ -67,17 +61,14 @@ export async function saveDriverProfile({
   let profilePhotoUrl = existingProfile?.profilePhotoUrl;
 
   if (photoFile) {
-    const extension = photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
-    profilePhotoPath = `driver-profile-photos/${user.uid}/profile.${extension}`;
-    const photoRef = ref(storage, profilePhotoPath);
-    await uploadBytes(photoRef, photoFile, {
-      contentType: photoFile.type || "image/jpeg",
-      customMetadata: {
-        driverUid: user.uid,
-      },
-    });
-
-    profilePhotoUrl = await getDownloadURL(photoRef);
+    const formData = new FormData();
+    formData.append("photo", photoFile);
+    const upload = await driverApiUpload<{
+      profilePhotoPath: string;
+      profilePhotoUrl: string;
+    }>("/v1/driver/me/profile-photo", formData);
+    profilePhotoPath = upload.profilePhotoPath;
+    profilePhotoUrl = upload.profilePhotoUrl;
   }
 
   if (!profilePhotoPath || !profilePhotoUrl) {
@@ -162,7 +153,6 @@ export async function logDeliveryAttempt({
   photoPath,
   photoUrl,
 }: {
-  uid: string;
   orderId: string;
   type: DeliveryAttemptLogType;
   note?: string;
@@ -179,36 +169,28 @@ export async function logDeliveryAttempt({
 }
 
 export async function uploadDeliveryAttemptPhoto({
-  uid,
   orderId,
   type,
   photoFile,
 }: {
-  uid: string;
   orderId: string;
   type: Extract<DeliveryAttemptLogType, "id_photo" | "merchant_invoice_photo">;
   photoFile: File;
 }) {
-  const extension = photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
-  const photoPath = `delivery-attempt-photos/${uid}/${orderId}/${type}-${Date.now()}.${extension}`;
-  const photoRef = ref(storage, photoPath);
+  const formData = new FormData();
+  formData.append("photo", photoFile);
+  formData.append("orderId", orderId);
+  formData.append("type", type);
+  const upload = await driverApiUpload<{
+    photoPath: string;
+    photoUrl: string;
+  }>("/v1/driver/me/delivery-attempt-photos", formData);
 
-  await uploadBytes(photoRef, photoFile, {
-    contentType: photoFile.type || "image/jpeg",
-    customMetadata: {
-      driverUid: uid,
-      orderId,
-      type,
-    },
-  });
-
-  const photoUrl = await getDownloadURL(photoRef);
   await logDeliveryAttempt({
-    uid,
     orderId,
     type,
-    photoPath,
-    photoUrl,
+    photoPath: upload.photoPath,
+    photoUrl: upload.photoUrl,
   });
 }
 

@@ -116,7 +116,6 @@ export function DeliveryWorkflowScreen({
     try {
       if (type) {
         await logDeliveryAttempt({
-          uid: profile.uid,
           orderId: order.medusaOrderId || order.orderId,
           type,
         });
@@ -148,7 +147,6 @@ export function DeliveryWorkflowScreen({
 
     try {
       await logDeliveryAttempt({
-        uid: profile.uid,
         orderId: order.medusaOrderId || order.orderId,
         type: "cancelled",
         note: cancelReason,
@@ -173,7 +171,6 @@ export function DeliveryWorkflowScreen({
 
     try {
       await uploadDeliveryAttemptPhoto({
-        uid: profile.uid,
         orderId: order.medusaOrderId || order.orderId,
         type: photoStep === "id-photo" ? "id_photo" : "merchant_invoice_photo",
         photoFile: photoAttempt,

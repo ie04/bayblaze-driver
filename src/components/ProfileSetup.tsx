@@ -1,5 +1,4 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import type { User } from "firebase/auth";
 import { Camera, Phone, UserRound } from "lucide-react";
 
 import { saveDriverProfile } from "../lib/driverData";
@@ -7,10 +6,8 @@ import type { DriverProfile } from "../lib/types";
 import { Button, ErrorState, Input, PageHeader, Textarea } from "./ui";
 
 export function ProfileSetup({
-  user,
   profile,
 }: {
-  user: User;
   profile: DriverProfile | null;
 }) {
   const [firstName, setFirstName] = useState(profile?.firstName ?? "");
@@ -49,7 +46,6 @@ export function ProfileSetup({
     setLoading(true);
     try {
       await saveDriverProfile({
-        user,
         firstName,
         lastName,
         phoneNumber,

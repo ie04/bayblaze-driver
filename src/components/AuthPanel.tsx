@@ -2,17 +2,18 @@ import { type FormEvent, useMemo, useState } from "react";
 import { Check, KeyRound, Mail, ShieldCheck } from "lucide-react";
 
 import { Button, Card, ErrorState, Input, InlineNotice } from "./ui";
-import { createAllowedDriverAccount, requestDriverAccess } from "../lib/driverAccess";
+import { createAllowedDriverAccount, loginDriver, requestDriverAccess } from "../lib/driverAccess";
+import type { DriverSession } from "../lib/driverApi";
 import { normalizeEmail } from "../lib/email";
 import { isValidPassword, validatePassword } from "../lib/password";
 
 type AuthPanelProps = {
-  onLogin: (email: string, password: string) => Promise<void>;
+  onAuthenticated: (session: DriverSession) => void;
 };
 
 type Step = "email" | "login" | "signup";
 
-export function AuthPanel({ onLogin }: AuthPanelProps) {
+export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +58,7 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
     setError("");
 
     try {
-      await onLogin(email, password);
+      onAuthenticated(await loginDriver(email, password));
     } catch (caught) {
       setError(getErrorMessage(caught));
     } finally {
@@ -77,8 +78,7 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
     setError("");
 
     try {
-      await createAllowedDriverAccount(email, code, newPassword);
-      await onLogin(email, newPassword);
+      onAuthenticated(await createAllowedDriverAccount(email, code, newPassword));
     } catch (caught) {
       setError(getErrorMessage(caught));
     } finally {
@@ -249,7 +249,7 @@ function PasswordChecklist({
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
-    return error.message.replace("Firebase: ", "").replace(/\s*\(.*\)\.?$/, ".");
+    return error.message.replace(/\s*\(.*\)\.?$/, ".");
   }
 
   return "Something went wrong. Try again.";

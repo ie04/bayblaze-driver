@@ -12,7 +12,7 @@ export default defineConfig({
       injectRegister: false,
       strategies: "injectManifest",
       srcDir: "src",
-      filename: "firebase-messaging-sw.ts",
+      filename: "driver-service-worker.ts",
       registerType: "autoUpdate",
       includeAssets: ["favicon-32x32.png", "apple-touch-icon.png"],
       manifest: {

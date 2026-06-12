@@ -25,32 +25,31 @@ Core stack:
 
 - React, TypeScript, Vite, Tailwind CSS.
 - PWA support through Vite.
-- Firebase Authentication for accounts, login, and passwords.
-- `bayblaze-api` for driver allowlist/profile, onboarding, vehicle links,
-  clock-in/out state, live location snapshots, queue state, delivery attempts,
-  and notification-token registration. Firestore remains the backend store, but
-  the browser app should not import Firestore collection names or read/write
-  Firestore docs directly.
-- Firebase Storage for required driver profile photos during the current
-  rollout; long-term uploads should move behind `bayblaze-api` too.
-- Firebase Functions for privileged backend work such as Resend verification
-  emails and Auth account creation.
+- `bayblaze-api` for driver allowlist, email/password account flows, session
+  token issuance, profile/onboarding, profile and delivery-attempt photo
+  uploads, vehicle links, clock-in/out state, live location snapshots, queue
+  state, delivery attempts, and notification-token registration.
+- Firestore, Firebase Auth, Firebase Storage, Resend, Medusa, routing/scoring,
+  and any privileged backend credentials sit behind `bayblaze-api`. The browser
+  app must not import Firebase SDKs, Firestore collection names, Firebase
+  Storage APIs, Firebase Functions callers, or backend service tokens.
 
 ## Security And Auth Model
 
 - Never store passwords in Firestore.
 - Do not expose Resend API keys to browser code. Resend calls must happen only
-  in Firebase Functions or another secure backend/serverless boundary.
+  in `bayblaze-api` or another secure backend/serverless boundary.
 - Driver emails must be manually allowlisted in
   `driver_allowlist/{emailKey}` before signup.
 - Email keys should be normalized as lowercase trimmed emails with unsafe path
   characters replaced consistently in shared helpers.
 - The allowlist gates signup/onboarding. If an email is not active in
   `driver_allowlist`, the app should deny access with clear driver-facing copy.
-- Existing Auth users sign in through normal Firebase email/password auth.
+- Existing Auth users sign in by calling `bayblaze-api`, which validates
+  email/password server-side and returns a driver session token.
 - New allowlisted drivers verify an emailed code through the backend, create a
-  password that satisfies BayBlaze requirements, and have their Firebase Auth
-  account created by a privileged backend function.
+  password that satisfies BayBlaze requirements, and have their account created
+  by `bayblaze-api`.
 - Password requirements: at least 12 characters, includes letters and numbers,
   and includes at least one symbol. Show validation feedback before submit.
 
@@ -69,9 +68,9 @@ Suggested collections:
 - `driver_delivery_queues/{uid}`: driver-safe route queue materialized by
   `bayblaze-api` from Medusa orders and internal routing scoring. Driver clients
   consume this through API routes; they do not read/write queue docs directly.
-- `driver_notification_tokens/{uid}/tokens/{tokenId}`: driver-owned Firebase
-  Cloud Messaging web tokens for closed-app delivery assignment push. Driver
-  clients register/unregister tokens through `bayblaze-api`.
+- `driver_notification_tokens/{uid}/tokens/{tokenId}`: backend-owned web push
+  token/subscription state for closed-app delivery assignment push. Driver
+  clients must register/unregister through `bayblaze-api`.
 - `driver_signup_codes/{emailKey}`: backend-owned short-lived verification
   challenge state. Store hashed codes only, never raw codes.
 - `delivery_attempt_logs/{logId}`: timestamped driver delivery attempt events
@@ -116,12 +115,11 @@ updates.
   `bayblaze_delivery_status` plus driver/timestamp fields on order metadata.
   Only terminal statuses (`completed` and `cancelled`) should trigger driver
   queue rescoring/removal behavior.
-- Driver assignment alerts should use API-synced queue polling or an API-owned
-  realtime channel for foreground updates. Closed/background alerts still use
-  Firebase Cloud Messaging web push, but token registration must go through
-  `bayblaze-api`, which writes `driver_notification_tokens/{uid}/tokens/*`.
-  The VitePWA service worker is `src/firebase-messaging-sw.ts` and handles both
-  app precache and push notification click deep links.
+- Driver assignment alerts use API-synced queue polling for foreground updates.
+  The VitePWA service worker is `src/driver-service-worker.ts` and handles app
+  precache plus generic browser push notification click deep links. Closed-app
+  push registration is disabled in the browser until `bayblaze-api` owns a
+  non-Firebase browser push registration flow.
 
 ## Cross-Repo Boundaries
 
@@ -153,52 +151,24 @@ updates.
 
 - The PWA can be deployed as a static Vite app to Firebase Hosting or another
   static host.
-- Firebase / Google Cloud project ID: `bayblaze-driver`.
-- Firebase project number / messaging sender ID: `251302296493`.
-- Firebase web app ID: `1:251302296493:web:4e60eec8a1562035e8ff24`.
-- Default Firebase Hosting site: `bayblaze-driver`.
-- Firebase Email/Password Authentication is enabled.
-- Firestore `(default)` is enabled in location `nam5`; Firestore rules from
-  `firestore.rules` have been deployed.
-- Firebase Storage is enabled with default bucket
-  `bayblaze-driver.firebasestorage.app` in `US-EAST1`; Storage rules from
-  `storage.rules` have been deployed.
-- Firebase Functions deploy alongside the app when email verification, Auth
-  account creation, or other privileged server actions are needed.
+- If Firebase Hosting is used, it should serve only the static `dist` app. The
+  driver repo no longer owns Firebase Functions, Firestore rules, Storage rules,
+  or Firebase client SDK configuration.
 - Browser-exposed environment variables must use the `VITE_` prefix and must be
   safe for public clients.
-- Required local frontend variables are the Firebase web config values:
-  `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
-  `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`,
-  `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, and
-  `VITE_FIREBASE_VAPID_KEY` for Firebase Cloud Messaging Web Push.
-- Server-only function configuration includes `RESEND_API_KEY` and a verified
-  sender address such as `DRIVER_EMAIL_FROM`.
-- Server-only Medusa/routing integration variables belong in `bayblaze-api`.
-  Firebase Functions now exist only as rollout fallback for signup email/Auth
-  work until those workflows are API-hosted too. Driver queue fetches, queue
-  scoring, delivery attempt forwarding, and driver location forwarding should
-  move to direct driver calls to `bayblaze-api` using Firebase ID-token auth.
-  Direct Medusa/IsoChronos variables remain supported as legacy fallbacks:
+- Required local frontend variable:
+  `VITE_BAYBLAZE_API_URL=http://localhost:3040`.
+- Server-only driver auth, Resend, Firebase Admin, Medusa, and routing
+  integration variables belong in `bayblaze-api`. Direct Medusa/IsoChronos
+  variables remain supported there as legacy fallbacks:
   `MEDUSA_BACKEND_URL`, `MEDUSA_ADMIN_API_TOKEN`, `MEDUSA_DRIVER_QUEUE_PATH`,
   `MEDUSA_DELIVERY_ATTEMPT_PATH`, `ISOCHRONOS_API_URL`,
   `ISOCHRONOS_ADMIN_TOKEN`, `ISOCHRONOS_QUEUE_SCORE_PATH`, and
   `ISOCHRONOS_DRIVER_LOCATION_PATH`. Never expose these through `VITE_`
   frontend variables.
-- The old Firebase Functions `ISOCHRONOS_ADMIN_TOKEN` contract is deprecated as
-  IsoChronos modules move into `bayblaze-api`.
-- Firebase Functions send `MEDUSA_ADMIN_API_TOKEN` to Medusa as both
-  `Authorization: Bearer ...` and `x-bayblaze-service-token`. Custom Medusa
-  driver integration routes under `/admin` must export `AUTHENTICATE = false`
-  and validate `x-bayblaze-service-token` themselves; otherwise Medusa's default
-  admin auth rejects driver queue sync with HTTP 401 before route code runs.
 - Legacy production backend service URLs:
   `MEDUSA_BACKEND_URL=https://api.bayblaze.net` and
   `ISOCHRONOS_API_URL=http://api.bayblaze.net:3030`.
-- Firebase Functions production env is stored locally in
-  `functions/.env.bayblaze-driver` and is intentionally gitignored. Do not
-  print or commit this file; deploy it with
-  `npx firebase-tools deploy --only functions:driver`.
 - Hetzner VPS SSH from this workstation:
   `ssh -i ~/.ssh/codex_vps_ed25519 codex-deploy@178.156.179.156`.
 - Stable VPS service pointers live under `/home/codex-deploy/bayblaze`:

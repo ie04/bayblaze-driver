@@ -1,6 +1,4 @@
-import { httpsCallable } from "firebase/functions";
-
-import { functions } from "./firebase";
+import { publicApiPost, setDriverSession, type DriverSession } from "./driverApi";
 import { normalizeEmail } from "./email";
 import type { DriverSignupMode } from "./types";
 
@@ -8,24 +6,15 @@ type PrepareDriverAccessResponse = {
   mode: DriverSignupMode;
 };
 
-type CreateDriverAccountResponse = {
-  uid: string;
-  email: string;
+type DriverAuthResponse = {
+  session: DriverSession;
 };
 
-const prepareDriverAccess = httpsCallable<
-  { email: string },
-  PrepareDriverAccessResponse
->(functions, "prepareDriverAccess");
-
-const createDriverAccount = httpsCallable<
-  { email: string; code: string; password: string },
-  CreateDriverAccountResponse
->(functions, "createDriverAccount");
-
 export async function requestDriverAccess(email: string) {
-  const result = await prepareDriverAccess({ email: normalizeEmail(email) });
-  return result.data.mode;
+  const result = await publicApiPost<PrepareDriverAccessResponse>("/v1/driver/auth/access", {
+    email: normalizeEmail(email),
+  });
+  return result.mode;
 }
 
 export async function createAllowedDriverAccount(
@@ -33,10 +22,20 @@ export async function createAllowedDriverAccount(
   code: string,
   password: string,
 ) {
-  const result = await createDriverAccount({
+  const result = await publicApiPost<DriverAuthResponse>("/v1/driver/auth/accounts", {
     email: normalizeEmail(email),
     code: code.trim(),
     password,
   });
-  return result.data;
+  setDriverSession(result.session);
+  return result.session;
+}
+
+export async function loginDriver(email: string, password: string) {
+  const result = await publicApiPost<DriverAuthResponse>("/v1/driver/auth/login", {
+    email: normalizeEmail(email),
+    password,
+  });
+  setDriverSession(result.session);
+  return result.session;
 }

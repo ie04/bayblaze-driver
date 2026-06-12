@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle,
   BellRing,
   Route,
   X,
 } from "lucide-react";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 import { AuthPanel } from "./components/AuthPanel";
 import { ClockInPanel } from "./components/ClockInPanel";
@@ -18,15 +16,14 @@ import { VehicleLink } from "./components/VehicleLink";
 import {
   AppShell,
   BottomNav,
-  Card,
   ErrorState,
   LoadingState,
 } from "./components/ui";
-import { auth, firebaseReady } from "./lib/firebase";
 import {
   registerDriverPushNotifications,
   unregisterDriverPushNotifications,
 } from "./lib/driverNotifications";
+import { clearDriverSession, getDriverSession, type DriverSession } from "./lib/driverApi";
 import {
   subscribeDriverDeliveryQueue,
   subscribeDriverProfile,
@@ -49,7 +46,7 @@ type DeliverySyncOptions = {
 };
 
 function App() {
-  const [authUser, setAuthUser] = useState(auth.currentUser);
+  const [authUser, setAuthUser] = useState<DriverSession | null>(() => getDriverSession());
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
   const [deliveryQueue, setDeliveryQueue] = useState<DriverDeliveryQueue | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState<DriverDeliveryStop | null>(null);
@@ -57,7 +54,7 @@ function App() {
     id: string;
     stop: DriverDeliveryStop;
   } | null>(null);
-  const [authLoading, setAuthLoading] = useState(firebaseReady);
+  const authLoading = false;
   const [syncingDeliveries, setSyncingDeliveries] = useState(false);
   const [deliverySyncError, setDeliverySyncError] = useState("");
   const [activeView, setActiveView] = useState<
@@ -138,31 +135,6 @@ function App() {
         setSyncingDeliveries(false);
       }
     }
-  }, []);
-
-  useEffect(() => {
-    if (!firebaseReady) {
-      return;
-    }
-
-    return onAuthStateChanged(auth, (user) => {
-      setAuthUser(user);
-      if (!user) {
-        setProfile(null);
-        setDeliveryQueue(null);
-        setSelectedDelivery(null);
-        setOrderToast(null);
-        setActiveView("dashboard");
-      } else {
-        setProfile(undefined);
-      }
-      queueBaselineReady.current = false;
-      deliveryQueueRef.current = null;
-      pendingDeliveryOrderId.current = "";
-      previousAssignedOrderIds.current = new Set();
-      pushRegistrationAttemptedForUid.current = "";
-      setAuthLoading(false);
-    });
   }, []);
 
   useEffect(() => {
@@ -326,11 +298,18 @@ function App() {
       await unregisterDriverPushNotifications();
     }
 
-    await signOut(auth);
-  }
-
-  if (!firebaseReady) {
-    return <EnvironmentNotice />;
+    clearDriverSession();
+    setProfile(null);
+    setDeliveryQueue(null);
+    setSelectedDelivery(null);
+    setOrderToast(null);
+    setActiveView("dashboard");
+    queueBaselineReady.current = false;
+    deliveryQueueRef.current = null;
+    pendingDeliveryOrderId.current = "";
+    previousAssignedOrderIds.current = new Set();
+    pushRegistrationAttemptedForUid.current = "";
+    setAuthUser(null);
   }
 
   const isLoginScreen = !authLoading && !authUser;
@@ -348,16 +327,17 @@ function App() {
     screenKey = "login";
     screen = (
       <AuthPanel
-        onLogin={(email, password) =>
-          signInWithEmailAndPassword(auth, email, password).then(() => undefined)
-        }
+        onAuthenticated={(session) => {
+          setProfile(undefined);
+          setAuthUser(session);
+        }}
       />
     );
   } else if (authUser && profile === undefined) {
     screenKey = "loading-profile";
   } else if (authUser && !profile?.onboardingComplete) {
     screenKey = "profile-setup";
-    screen = <ProfileSetup user={authUser} profile={profile ?? null} />;
+    screen = <ProfileSetup profile={profile ?? null} />;
   } else if (profile && activeView === "profile") {
     screenKey = "profile";
     screen = (
@@ -493,23 +473,6 @@ function App() {
         />
       ) : null}
     </AppShell>
-  );
-}
-
-function EnvironmentNotice() {
-  return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md items-center px-5">
-      <Card elevated>
-        <AlertTriangle className="size-8 text-[var(--bb-danger)]" />
-        <h1 className="mt-4 text-2xl font-black text-[var(--bb-charcoal)]">
-          Firebase config needed
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--bb-muted)]">
-          Add the required `VITE_FIREBASE_*` environment variables before running the
-          driver dashboard.
-        </p>
-      </Card>
-    </main>
   );
 }
 

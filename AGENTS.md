@@ -49,6 +49,11 @@ Core stack:
   email/password server-side, ensures an `accounts/{uid}` record with the
   `driver` role, and returns a BayBlaze account session token that is accepted
   by driver workflow routes.
+- The driver PWA sign-in screen uses the universal BayBlaze account routes:
+  `POST /v1/auth/login`, `POST /v1/auth/google/start`, and
+  `POST /v1/auth/google/callback`. The app stores the returned universal
+  account session as its driver bearer token only after verifying the account
+  has the `employee` badge plus the `driver` role.
 - New allowlisted drivers verify an emailed code through the backend, create a
   password that satisfies BayBlaze requirements, and have their account created
   by `bayblaze-api`.
@@ -168,6 +173,10 @@ updates.
   safe for public clients.
 - Required local frontend variable:
   `VITE_BAYBLAZE_API_URL=http://localhost:3040`.
+- Google OAuth redirect URI for the driver PWA:
+  `https://driver.bayblaze.net/auth/google/callback` in production and
+  `http://localhost:5173/auth/google/callback` for local Vite development when
+  testing Google login.
 - Server-only driver auth, Resend, Firebase Admin, Medusa, and routing
   integration variables belong in `bayblaze-api`. Direct Medusa variables remain
   supported there as legacy fallbacks:

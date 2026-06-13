@@ -1,56 +1,41 @@
-import { type FormEvent, useMemo, useState } from "react";
-import { Check, KeyRound, Mail, ShieldCheck } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
+import { KeyRound, Mail, ShieldCheck } from "lucide-react";
 
-import { Button, Card, ErrorState, Input, InlineNotice } from "./ui";
-import { createAllowedDriverAccount, loginDriver, requestDriverAccess } from "../lib/driverAccess";
+import { Button, Card, ErrorState } from "./ui";
+import {
+  completeDriverGoogleLogin,
+  loginDriver,
+  startDriverGoogleLogin,
+} from "../lib/driverAccess";
 import type { DriverSession } from "../lib/driverApi";
-import { normalizeEmail } from "../lib/email";
-import { isValidPassword, validatePassword } from "../lib/password";
 
 type AuthPanelProps = {
   onAuthenticated: (session: DriverSession) => void;
 };
 
-type Step = "email" | "login" | "signup";
-
 export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
-  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(() => window.location.pathname === "/auth/google/callback");
   const [error, setError] = useState("");
 
-  const passwordState = useMemo(() => validatePassword(newPassword), [newPassword]);
-  const passwordReady = isValidPassword(newPassword) && newPassword === confirmPassword;
-
-  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    try {
-      const nextEmail = normalizeEmail(email);
-      const mode = await requestDriverAccess(nextEmail);
-      setEmail(nextEmail);
-
-      if (mode === "login") {
-        setStep("login");
-        setMessage("Driver access confirmed.");
-      } else {
-        setStep("signup");
-        setMessage("Verification code sent.");
-      }
-    } catch (caught) {
-      setError(getErrorMessage(caught));
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (window.location.pathname !== "/auth/google/callback") {
+      return;
     }
-  }
+
+    completeDriverGoogleLogin(new URLSearchParams(window.location.search))
+      .then((session) => {
+        window.history.replaceState({}, "", "/");
+        onAuthenticated(session);
+      })
+      .catch((caught) => {
+        window.history.replaceState({}, "", "/");
+        setError(getErrorMessage(caught));
+      })
+      .finally(() => setGoogleLoading(false));
+  }, [onAuthenticated]);
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,23 +51,15 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
     }
   }
 
-  async function handleSignupSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!passwordReady) {
-      setError("Finish the password requirements before creating your account.");
-      return;
-    }
-
-    setLoading(true);
+  async function handleGoogleLogin() {
+    setGoogleLoading(true);
     setError("");
 
     try {
-      onAuthenticated(await createAllowedDriverAccount(email, code, newPassword));
+      await startDriverGoogleLogin();
     } catch (caught) {
       setError(getErrorMessage(caught));
-    } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   }
 
@@ -96,95 +73,69 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
           <ShieldCheck size={28} aria-hidden="true" />
         </div>
         <h2 className="mt-5 text-3xl font-black leading-tight text-[var(--bb-charcoal)]">
-          Sign In
+          Driver Sign In
         </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--bb-muted)]">
-          Use your approved BayBlaze driver email.
+          Use a BayBlaze employee account with the driver role.
         </p>
       </div>
 
-      {step === "email" ? (
-        <form className="space-y-4" onSubmit={handleEmailSubmit}>
-          <Input
-            icon={<Mail size={18} aria-hidden="true" />}
-            type="email"
-            autoComplete="email"
-            placeholder="driver@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-          <Button fullWidth loading={loading} type="submit">
-            Continue
-          </Button>
-        </form>
-      ) : null}
+      <Button
+        fullWidth
+        loading={googleLoading}
+        onClick={() => void handleGoogleLogin()}
+        type="button"
+        variant="secondary"
+      >
+        <GoogleIcon />
+        Continue with Google
+      </Button>
 
-      {step === "login" ? (
-        <form className="space-y-4" onSubmit={handleLoginSubmit}>
-          <ReadOnlyEmail email={email} onChange={() => setStep("email")} />
-          <Input
-            icon={<KeyRound size={18} aria-hidden="true" />}
-            type="password"
-            autoComplete="current-password"
-            placeholder="Password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-          <Button fullWidth loading={loading} type="submit">
-            Sign in
-          </Button>
-        </form>
-      ) : null}
+      <div className="my-5 flex items-center gap-3 text-xs font-black uppercase tracking-[0.16em] text-[var(--bb-muted)]">
+        <span className="h-px flex-1 bg-[var(--bb-line)]" />
+        <span>Email</span>
+        <span className="h-px flex-1 bg-[var(--bb-line)]" />
+      </div>
 
-      {step === "signup" ? (
-        <form className="space-y-4" onSubmit={handleSignupSubmit}>
-          <ReadOnlyEmail email={email} onChange={() => setStep("email")} />
-          <Input
-            icon={<KeyRound size={18} aria-hidden="true" />}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="Verification code"
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            required
-          />
-          <Input
-            icon={<KeyRound size={18} aria-hidden="true" />}
-            type="password"
-            autoComplete="new-password"
-            placeholder="Create password"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            required
-          />
-          <Input
-            icon={<KeyRound size={18} aria-hidden="true" />}
-            type="password"
-            autoComplete="new-password"
-            placeholder="Confirm password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            required
-          />
-          <PasswordChecklist
-            minLength={passwordState.minLength}
-            lettersAndNumbers={passwordState.lettersAndNumbers}
-            symbol={passwordState.symbol}
-            matches={newPassword.length > 0 && newPassword === confirmPassword}
-          />
-          <Button fullWidth loading={loading} type="submit">
-            Create account
-          </Button>
-        </form>
-      ) : null}
-
-      {message ? (
-        <InlineNotice className="mt-4" tone="success">
-          {message}
-        </InlineNotice>
-      ) : null}
+      <form className="space-y-4" onSubmit={handleLoginSubmit}>
+        <label className="block">
+          <span className="mb-2 block text-xs font-black uppercase text-[var(--bb-muted)]">
+            Email
+          </span>
+          <span className="flex min-h-14 items-center gap-3 rounded-2xl border border-[var(--bb-line)] bg-white px-4 shadow-[var(--bb-shadow-soft)] focus-within:border-[var(--bb-blaze)]">
+            <Mail size={18} aria-hidden="true" />
+            <input
+              autoComplete="email"
+              className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="driver@example.com"
+              required
+              type="email"
+              value={email}
+            />
+          </span>
+        </label>
+        <label className="block">
+          <span className="mb-2 block text-xs font-black uppercase text-[var(--bb-muted)]">
+            Password
+          </span>
+          <span className="flex min-h-14 items-center gap-3 rounded-2xl border border-[var(--bb-line)] bg-white px-4 shadow-[var(--bb-shadow-soft)] focus-within:border-[var(--bb-blaze)]">
+            <KeyRound size={18} aria-hidden="true" />
+            <input
+              autoComplete="current-password"
+              className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              required
+              type="password"
+              value={password}
+            />
+          </span>
+        </label>
+        <Button fullWidth loading={loading} type="submit">
+          Sign in
+        </Button>
+      </form>
 
       {error ? (
         <ErrorState className="mt-4">{error}</ErrorState>
@@ -193,57 +144,14 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   );
 }
 
-function ReadOnlyEmail({ email, onChange }: { email: string; onChange: () => void }) {
+function GoogleIcon() {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-surface-warm)] px-4 py-3">
-      <span className="min-w-0 truncate text-sm font-black text-[var(--bb-charcoal)]">
-        {email}
-      </span>
-      <button
-        type="button"
-        className="shrink-0 text-sm font-black text-[var(--bb-charcoal)]"
-        onClick={onChange}
-      >
-        Change
-      </button>
-    </div>
-  );
-}
-
-function PasswordChecklist({
-  minLength,
-  lettersAndNumbers,
-  symbol,
-  matches,
-}: {
-  minLength: boolean;
-  lettersAndNumbers: boolean;
-  symbol: boolean;
-  matches: boolean;
-}) {
-  const items = [
-    ["12 characters", minLength],
-    ["Letters and numbers", lettersAndNumbers],
-    ["1 symbol", symbol],
-    ["Passwords match", matches],
-  ] as const;
-
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {items.map(([label, checked]) => (
-        <div
-          className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black ${
-            checked
-              ? "border-[var(--bb-success-soft)] bg-[var(--bb-success-soft)] text-[var(--bb-success-strong)]"
-              : "border-[var(--bb-line)] bg-[var(--bb-neutral-soft)] text-[var(--bb-muted)]"
-          }`}
-          key={label}
-        >
-          <Check size={14} aria-hidden="true" />
-          {label}
-        </div>
-      ))}
-    </div>
+    <span
+      aria-hidden="true"
+      className="grid size-5 place-items-center rounded-full border border-[var(--bb-line)] bg-white text-xs font-black text-[var(--bb-charcoal)]"
+    >
+      G
+    </span>
   );
 }
 

@@ -177,6 +177,9 @@ updates.
   `https://driver.bayblaze.net/auth/google/callback` in production and
   `http://localhost:5173/auth/google/callback` for local Vite development when
   testing Google login.
+  The production URI must also be present in the Google Cloud OAuth web
+  client's Authorized redirect URIs; otherwise Google returns
+  `redirect_uri_mismatch` even when `bayblaze-api` allows the callback.
 - Server-only driver auth, Resend, Firebase Admin, Medusa, and routing
   integration variables belong in `bayblaze-api`. Direct Medusa variables remain
   supported there as legacy fallbacks:

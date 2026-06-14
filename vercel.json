@@ -6,6 +6,31 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/driver-service-worker-v2.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
         }
       ]
     },
@@ -24,6 +49,10 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
         }
       ]
     },
@@ -33,6 +62,10 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
         }
       ]
     }

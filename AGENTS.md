@@ -229,3 +229,17 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - `bayblaze-api` should forward `out_for_delivery`, `completed`, and
   `cancelled` to Medusa. Only `completed` and `cancelled` are terminal and
   should rescore/remove completed queue stops.
+
+## Legacy PWA Cache Migration
+
+- The active production service worker is
+  `/driver-service-worker-v2.js`.
+- `/driver-service-worker.js` is intentionally retained as a retirement
+  worker for installations that are still controlled by the original
+  service worker. It clears legacy Cache Storage entries, unregisters the
+  original registration, and navigates clients back to the network.
+- Do not reuse `/driver-service-worker.js` for the active PWA until all
+  legacy installations can reasonably be considered retired.
+- Active worker registration uses `updateViaCache: "none"` and checks for
+  updates on startup, focus, reconnect, page restore, visibility changes,
+  and once per minute while open.

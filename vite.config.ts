@@ -42,6 +42,7 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ["**/*.{js,css,svg,png,ico}"],
+        globIgnores: ["driver-service-worker.js", "sw.js"],
       },
     }),
   ],

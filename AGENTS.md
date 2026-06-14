@@ -234,6 +234,10 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 
 - The active production service worker is
   `/driver-service-worker-v2.js`.
+- `/sw.js` is intentionally retained as a retirement worker for the oldest
+  VitePWA-generated installations that used the default service-worker URL. It
+  clears legacy Cache Storage entries, unregisters itself, and navigates clients
+  back to the network.
 - `/driver-service-worker.js` is intentionally retained as a retirement
   worker for installations that are still controlled by the original
   service worker. It clears legacy Cache Storage entries, unregisters the

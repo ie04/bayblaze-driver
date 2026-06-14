@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#74a84a" />
+    <title>Updating BayBlaze Driver</title>
+
+    <style>
+      :root {
+        font-family: Arial, sans-serif;
+        color: #000;
+        background: #f4f0e8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100dvh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(100%, 420px);
+        border: 2px solid #000;
+        background: #fff;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 5px 5px 0 #000;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        text-transform: uppercase;
+      }
+
+      p {
+        margin: 12px 0 0;
+        line-height: 1.5;
+      }
+
+      .spinner {
+        width: 34px;
+        height: 34px;
+        margin: 20px auto 0;
+        border: 4px solid #d8d8d8;
+        border-top-color: #74a84a;
+        border-radius: 50%;
+        animation: spin 700ms linear infinite;
+      }
+
+      button {
+        display: none;
+        width: 100%;
+        margin-top: 20px;
+        border: 2px solid #000;
+        background: #74a84a;
+        padding: 12px;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <h1>Updating Driver App</h1>
+      <p id="status">Removing the outdated app version…</p>
+      <div id="spinner" class="spinner" aria-hidden="true"></div>
+      <button id="retry" type="button">Open latest version</button>
+    </main>
+
+    <script>
+      const statusElement = document.getElementById("status");
+      const spinnerElement = document.getElementById("spinner");
+      const retryButton = document.getElementById("retry");
+
+      function openLatestVersion() {
+        const destination = new URL("/", window.location.origin);
+
+        destination.searchParams.set(
+          "__bb_pwa_recovery",
+          Date.now().toString()
+        );
+
+        window.location.replace(destination.toString());
+      }
+
+      retryButton.addEventListener("click", openLatestVersion);
+
+      async function recover() {
+        statusElement.textContent =
+          "Removing outdated service workers…";
+
+        if ("serviceWorker" in navigator) {
+          const registrations =
+            await navigator.serviceWorker.getRegistrations();
+
+          await Promise.all(
+            registrations.map((registration) =>
+              registration.unregister()
+            )
+          );
+        }
+
+        statusElement.textContent =
+          "Clearing outdated app files…";
+
+        if ("caches" in window) {
+          const cacheNames = await caches.keys();
+
+          await Promise.all(
+            cacheNames.map((cacheName) =>
+              caches.delete(cacheName)
+            )
+          );
+        }
+
+        statusElement.textContent =
+          "Opening the latest deployment…";
+
+        window.setTimeout(openLatestVersion, 350);
+      }
+
+      recover().catch((error) => {
+        console.error("PWA recovery failed.", error);
+
+        statusElement.textContent =
+          "Automatic updating failed. Tap below to try again.";
+        spinnerElement.style.display = "none";
+        retryButton.style.display = "block";
+      });
+    </script>
+  </body>
+</html>

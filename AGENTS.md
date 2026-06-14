@@ -215,9 +215,14 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - When API-synced driver queue data updates, reconcile any open
   `selectedDelivery` object against the fresh queue entry by order ID/reference
   rather than keeping an old React object.
-- Service worker updates should eventually refresh the installed PWA shell
-  through a `controllerchange` reload path so deployed fixes reach installed
-  apps without manual cache clearing.
+- Production service-worker updates activate immediately with `skipWaiting`,
+  claim open clients, and reload an already-controlled app on
+  `controllerchange`. The browser checks for deployments on startup, focus,
+  reconnect, page restore, visibility changes, and every minute while open.
+- Online navigations are network-first so a Vercel deployment is preferred over
+  the cached app shell. The most recent successful navigation remains available
+  as an offline fallback. Vercel must not cache the generated driver service
+  worker, manifest, root document, or `index.html`.
 - The Add items to box step is the business transition to `out_for_delivery`.
   The button should not merely advance local UI state; it must log the
   `out_for_delivery` delivery attempt before moving to the drive step.

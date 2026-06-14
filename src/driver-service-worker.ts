@@ -31,9 +31,84 @@ type BayBlazePushPayload = {
 
 const DEFAULT_ICON = "/icons/bayblaze-driver-icon-192.png";
 const DEFAULT_BADGE = "/icons/bayblaze-driver-icon-192.png";
+const NAVIGATION_CACHE = "bayblaze-driver-navigation-v1";
+const NAVIGATION_CACHE_PREFIX = "bayblaze-driver-navigation-";
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      removeOutdatedNavigationCaches(),
+    ]),
+  );
+});
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.mode !== "navigate") {
+    return;
+  }
+
+  event.respondWith(loadLatestNavigation(event.request));
+});
+
+async function loadLatestNavigation(request: Request) {
+  const cache = await caches.open(NAVIGATION_CACHE);
+
+  try {
+    const response = await fetch(request, {
+      cache: "no-store",
+    });
+
+    if (response.ok) {
+      await cache.put(request, response.clone());
+    }
+
+    return response;
+  } catch {
+    const exactMatch = await cache.match(request);
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    const rootMatch = await cache.match("/");
+
+    if (rootMatch) {
+      return rootMatch;
+    }
+
+    return new Response(
+      "BayBlaze Driver is offline and no cached app shell is available.",
+      {
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+        },
+        status: 503,
+      },
+    );
+  }
+}
+
+async function removeOutdatedNavigationCaches() {
+  const cacheNames = await caches.keys();
+
+  await Promise.all(
+    cacheNames
+      .filter(
+        (cacheName) =>
+          cacheName.startsWith(NAVIGATION_CACHE_PREFIX) &&
+          cacheName !== NAVIGATION_CACHE,
+      )
+      .map((cacheName) => caches.delete(cacheName)),
+  );
+}
 
 self.addEventListener("push", (event) => {
   const payload = readPushPayload(event);

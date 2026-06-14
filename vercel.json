@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/((?!assets/|icons/|images/|favicon.svg|favicon-32x32.png|apple-touch-icon.png|manifest.webmanifest|sw.js|driver-service-worker.js|driver-service-worker-v2.js|pwa-recovery-20260614.html).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/sw.js",

@@ -5,8 +5,9 @@ Mobile-first React PWA for BayBlaze delivery drivers.
 ## Stack
 
 - React, TypeScript, Vite, Tailwind CSS.
-- Firebase Authentication, Firestore, Storage, Hosting, and Functions.
-- Resend email verification through Firebase Functions only.
+- `bayblaze-api` for auth, driver workflow state, uploads, delivery queues,
+  delivery-attempt logs, notification registration, and secure email/push
+  delivery.
 
 ## Local Setup
 
@@ -16,35 +17,31 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Functions:
+Required frontend variables:
 
-```bash
-cd functions
-npm install
-cp .env.example .env
-npm run build
+```env
+VITE_BAYBLAZE_API_URL=http://localhost:3040
+VITE_BAYBLAZE_WEB_PUSH_PUBLIC_KEY=
 ```
 
-Required frontend variables are listed in `.env.example`. Server-only Resend
-settings are listed in `functions/.env.example`.
-
-Closed-app driver assignment push notifications also require
-`VITE_FIREBASE_VAPID_KEY`, using the Web Push certificate key from Firebase
-Cloud Messaging settings.
+Closed-app driver assignment push notifications use standard Web Push. The
+private VAPID key and Resend sender credentials live only in `bayblaze-api`;
+the browser app stores a push subscription through
+`POST /v1/driver/me/notification-tokens`.
 
 ## Driver Access Flow
 
 1. Driver enters email.
-2. App checks `driver_allowlist/{emailKey}`.
-3. A Firebase Function confirms allowlist state and Auth account existence.
-4. Existing drivers sign in with Firebase email/password auth.
-5. New allowlisted drivers receive a Resend code from the Function.
-6. The Function validates the code and creates the Firebase Auth user.
+2. App calls `bayblaze-api`, which checks `driver_allowlist/{emailKey}`.
+3. Existing drivers sign in through the universal BayBlaze account routes.
+4. New allowlisted drivers receive a Resend code from `bayblaze-api`.
+5. The API validates the code, creates the account, and returns a driver
+   session.
 7. The app guides the driver through profile photo/profile setup, vehicle link,
    clock-in, and the active dashboard.
 
-Passwords are handled only by Firebase Authentication and are never stored in
-Firestore.
+Passwords are handled only by the secure backend auth boundary and are never
+stored in Firestore.
 
 ## BayBlaze UI Primitives
 

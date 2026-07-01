@@ -123,10 +123,14 @@ updates.
   Only terminal statuses (`completed` and `cancelled`) should trigger driver
   queue rescoring/removal behavior.
 - Driver assignment alerts use API-synced queue polling for foreground updates.
-  The VitePWA service worker is `src/driver-service-worker.ts` and handles app
-  precache plus generic browser push notification click deep links. Closed-app
-  push registration is disabled in the browser until `bayblaze-api` owns a
-  non-Firebase browser push registration flow.
+  The VitePWA service worker is `src/driver-service-worker-v2.ts` and handles
+  app precache plus browser push notification click deep links. The browser
+  registers standard Web Push subscriptions with
+  `POST /v1/driver/me/notification-tokens` using the public
+  `VITE_BAYBLAZE_WEB_PUSH_PUBLIC_KEY`; unregistration calls
+  `DELETE /v1/driver/me/notification-tokens/:tokenId`. Email alerts for new
+  driver assignments must be sent by `bayblaze-api` or another secure backend
+  boundary, never by the browser app.
 
 ## Cross-Repo Boundaries
 
@@ -173,6 +177,9 @@ updates.
   safe for public clients.
 - Required local frontend variable:
   `VITE_BAYBLAZE_API_URL=http://localhost:3040`.
+- Closed-app driver assignment push notifications require the browser-safe
+  public Web Push key in `VITE_BAYBLAZE_WEB_PUSH_PUBLIC_KEY`. Private VAPID keys
+  and assignment email sender credentials belong only in `bayblaze-api`.
 - Google OAuth redirect URI for the driver PWA:
   `https://driver.bayblaze.net/auth/google/callback` in production and
   `http://localhost:5173/auth/google/callback` for local Vite development when

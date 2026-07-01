@@ -1,19 +1,114 @@
 import { type ReactNode } from "react";
-import { Clock, Loader2, MapPin, Navigation, RefreshCw, Truck } from "lucide-react";
+import { Bell, BellRing, Clock, Loader2, MailCheck, MapPin, Navigation, RefreshCw, Truck } from "lucide-react";
 
 import { useLiveDriverLocation } from "../hooks/useLiveDriverLocation";
+import type { DriverPushRegistrationResult } from "../lib/driverNotifications";
 import type { DriverProfile } from "../lib/types";
 import { Button, Card, InlineNotice, MetricCard } from "./ui";
 
-export function DriverDashboard({ profile }: { profile: DriverProfile }) {
+export function DriverDashboard({
+  notificationStatus,
+  notificationsBusy,
+  onEnableNotifications,
+  profile,
+}: {
+  notificationStatus: DriverPushRegistrationResult;
+  notificationsBusy: boolean;
+  onEnableNotifications: () => void;
+  profile: DriverProfile;
+}) {
   const liveLocation = useLiveDriverLocation(profile);
 
   return (
     <div className="flex flex-1 flex-col gap-5">
       <ActiveShiftWidget profile={profile} />
 
+      <AssignmentAlertsCard
+        busy={notificationsBusy}
+        status={notificationStatus}
+        onEnable={onEnableNotifications}
+      />
+
       <LiveLocationCard location={liveLocation} />
     </div>
+  );
+}
+
+function AssignmentAlertsCard({
+  busy,
+  onEnable,
+  status,
+}: {
+  busy: boolean;
+  onEnable: () => void;
+  status: DriverPushRegistrationResult;
+}) {
+  const registered = status === "registered";
+  const blocked = status === "permission-denied";
+  const unavailable = status === "unsupported" || status === "missing-vapid-key";
+  const title = registered
+    ? "Push alerts active"
+    : blocked
+      ? "Push alerts blocked"
+      : unavailable
+        ? "Push alerts unavailable"
+        : "Turn on push alerts";
+  const detail = registered
+    ? "New order assignments can reach this device, and BayBlaze API handles email alerts server-side."
+    : blocked
+      ? "Browser notifications are blocked for this site. Enable them in browser settings to receive push alerts."
+      : status === "missing-vapid-key"
+        ? "A public Web Push key is missing from the driver app environment."
+        : status === "unsupported"
+          ? "This browser does not support driver push alerts."
+          : "Get a device notification when a new delivery hits your route.";
+
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        <span
+          className={`grid size-11 shrink-0 place-items-center rounded-2xl ${
+            registered
+              ? "bg-[var(--bb-success-soft)] text-[var(--bb-success-strong)]"
+              : "bg-[var(--bb-blaze-soft)] text-[var(--bb-blaze)]"
+          }`}
+        >
+          {registered ? (
+            <BellRing size={21} aria-hidden="true" />
+          ) : (
+            <Bell size={21} aria-hidden="true" />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-black uppercase text-[var(--bb-blaze)]">
+            Assignment alerts
+          </p>
+          <h3 className="mt-1 text-lg font-black text-[var(--bb-charcoal)]">
+            {title}
+          </h3>
+          <p className="mt-2 text-sm font-semibold leading-5 text-[var(--bb-muted)]">
+            {detail}
+          </p>
+          <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[var(--bb-surface-warm)] px-3 py-2 text-sm font-black text-[var(--bb-charcoal)]">
+            <MailCheck size={17} aria-hidden="true" />
+            <span className="min-w-0 truncate">Email alerts sent by BayBlaze API</span>
+          </div>
+          {!registered && !blocked && status !== "unsupported" ? (
+            <Button
+              className="mt-3"
+              fullWidth
+              loading={busy}
+              onClick={onEnable}
+              size="sm"
+              variant="secondary"
+            >
+              <Bell size={17} aria-hidden="true" />
+              ENABLE PUSH ALERTS
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </Card>
   );
 }
 

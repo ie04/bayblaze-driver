@@ -21,6 +21,7 @@ import {
 } from "./components/ui";
 import {
   registerDriverPushNotifications,
+  type DriverPushRegistrationResult,
   unregisterDriverPushNotifications,
 } from "./lib/driverNotifications";
 import { clearDriverSession, getDriverSession, type DriverSession } from "./lib/driverApi";
@@ -57,6 +58,9 @@ function App() {
   const authLoading = false;
   const [syncingDeliveries, setSyncingDeliveries] = useState(false);
   const [deliverySyncError, setDeliverySyncError] = useState("");
+  const [notificationStatus, setNotificationStatus] =
+    useState<DriverPushRegistrationResult>("permission-default");
+  const [enablingNotifications, setEnablingNotifications] = useState(false);
   const [activeView, setActiveView] = useState<
     "dashboard" | "deliveries" | "delivery-workflow" | "profile"
   >(() => (window.location.pathname === "/deliveries" ? "deliveries" : "dashboard"));
@@ -249,7 +253,21 @@ function App() {
     }
 
     pushRegistrationAttemptedForUid.current = authUser.uid;
-    void registerDriverPushNotifications();
+    if (!("Notification" in window) || Notification.permission !== "granted") {
+      window.setTimeout(() => {
+        setNotificationStatus(
+          "Notification" in window && Notification.permission === "denied"
+            ? "permission-denied"
+            : "permission-default",
+        );
+      }, 0);
+      return;
+    }
+
+    void registerDriverPushNotifications().then(setNotificationStatus).catch((caught) => {
+      console.warn("Driver push notification registration failed.", caught);
+      setNotificationStatus("unsupported");
+    });
   }, [authUser, profile?.clockedIn, profile?.onboardingComplete]);
 
   useEffect(() => {
@@ -310,6 +328,21 @@ function App() {
     previousAssignedOrderIds.current = new Set();
     pushRegistrationAttemptedForUid.current = "";
     setAuthUser(null);
+  }
+
+  async function handleEnableNotifications() {
+    setEnablingNotifications(true);
+
+    try {
+      setNotificationStatus(
+        await registerDriverPushNotifications({ requestPermission: true }),
+      );
+    } catch (caught) {
+      console.warn("Driver push notification registration failed.", caught);
+      setNotificationStatus("unsupported");
+    } finally {
+      setEnablingNotifications(false);
+    }
   }
 
   const isLoginScreen = !authLoading && !authUser;
@@ -392,7 +425,14 @@ function App() {
     screen = <ClockInPanel profile={profile} />;
   } else if (profile) {
     screenKey = "dashboard";
-    screen = <DriverDashboard profile={profile} />;
+    screen = (
+      <DriverDashboard
+        notificationStatus={notificationStatus}
+        notificationsBusy={enablingNotifications}
+        profile={profile}
+        onEnableNotifications={() => void handleEnableNotifications()}
+      />
+    );
   }
 
   return (

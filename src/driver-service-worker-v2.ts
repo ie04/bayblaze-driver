@@ -119,25 +119,28 @@ async function removeOutdatedNavigationCaches() {
 self.addEventListener("push", (event) => {
   const payload = readPushPayload(event);
   const notification = payload?.webpush?.notification ?? payload?.notification;
+  const data = payload?.data ?? {};
+  const title = notification?.title ?? data.title ?? "New BayBlaze delivery";
+  const body = notification?.body ?? data.body;
 
-  if (!notification) {
+  if (!title && !body) {
     return;
   }
 
-  const orderId = payload?.data?.orderId ?? "";
-  const link = payload?.webpush?.fcm_options?.link ?? `/deliveries?orderId=${orderId}`;
+  const orderId = data.orderId ?? "";
+  const link = data.link ?? payload?.webpush?.fcm_options?.link ?? `/deliveries?orderId=${orderId}`;
 
   event.waitUntil(
-    self.registration.showNotification(notification.title ?? "New BayBlaze delivery", {
-      badge: notification.badge ?? DEFAULT_BADGE,
-      body: notification.body,
+    self.registration.showNotification(title, {
+      badge: notification?.badge ?? DEFAULT_BADGE,
+      body,
       data: {
         link,
         orderId,
       },
-      icon: notification.icon ?? DEFAULT_ICON,
+      icon: notification?.icon ?? DEFAULT_ICON,
       renotify: true,
-      tag: notification.tag ?? (orderId ? `bayblaze-delivery-${orderId}` : "bayblaze-delivery"),
+      tag: notification?.tag ?? (orderId ? `bayblaze-delivery-${orderId}` : "bayblaze-delivery"),
     } as NotificationOptions & { renotify: boolean }),
   );
 });

@@ -112,6 +112,9 @@ updates.
   with item/variant/quantity confirmation and invoice slip, drive to customer,
   ID checklist, ID photo, merchant invoice signature, merchant invoice photo,
   handoff, completion celebration, then return to the delivery route.
+- The current-stop route card can request label/invoice reprints through
+  `POST /v1/driver/me/deliveries/:orderId/reprint-labels`. The driver app must
+  not call Medusa or the label printer agent directly.
 - Delivery attempt photos are stored under
   `delivery-attempt-photos/{uid}/{orderId}/...` and referenced from
   `delivery_attempt_logs`.

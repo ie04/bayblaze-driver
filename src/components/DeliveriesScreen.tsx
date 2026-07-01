@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Loader2,
   Lock,
   MessageSquare,
   Navigation,
   Phone,
+  Printer,
   RefreshCw,
   Route,
   ShieldCheck,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 import type { DriverDeliveryQueue, DriverDeliveryStop, DeliveryStopStatus } from "../lib/types";
+import { reprintDeliveryLabels } from "../lib/driverData";
 import {
   ActionBar,
   Button,
@@ -175,6 +177,24 @@ function PriorityDeliveryCard({
   delivery: DriverDeliveryStop;
   onOpen: () => void;
 }) {
+  const [reprintStatus, setReprintStatus] = useState<"idle" | "printing" | "sent">("idle");
+  const [reprintError, setReprintError] = useState("");
+
+  async function handleReprintLabels() {
+    setReprintStatus("printing");
+    setReprintError("");
+
+    try {
+      await reprintDeliveryLabels(delivery.orderId);
+      setReprintStatus("sent");
+    } catch (caught) {
+      setReprintStatus("idle");
+      setReprintError(
+        caught instanceof Error ? caught.message : "Label reprint failed.",
+      );
+    }
+  }
+
   return (
     <OrderCard
       current
@@ -223,6 +243,19 @@ function PriorityDeliveryCard({
               Call
             </Button>
           </ActionBar>
+          <Button
+            fullWidth
+            loading={reprintStatus === "printing"}
+            onClick={() => void handleReprintLabels()}
+            size="sm"
+            variant="quiet"
+          >
+            {reprintStatus !== "printing" ? <Printer size={16} aria-hidden="true" /> : null}
+            {reprintStatus === "sent" ? "Labels Sent" : "Reprint Labels"}
+          </Button>
+          {reprintError ? (
+            <InlineNotice tone="danger">{reprintError}</InlineNotice>
+          ) : null}
         </div>
       }
     />

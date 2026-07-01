@@ -168,6 +168,12 @@ export async function logDeliveryAttempt({
   });
 }
 
+export async function reprintDeliveryLabels(orderId: string) {
+  await driverApiPost(
+    `/v1/driver/me/deliveries/${encodeURIComponent(orderId)}/reprint-labels`,
+  );
+}
+
 export async function uploadDeliveryAttemptPhoto({
   orderId,
   type,

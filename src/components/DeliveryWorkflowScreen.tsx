@@ -53,7 +53,7 @@ export function DeliveryWorkflowScreen({
   const requiresWarehouse = order.items.some(
     (item) => item.inventoryLocation === "warehouse",
   );
-  const workflowOrderKey = order.medusaOrderId || order.orderId;
+  const workflowOrderKey = order.orderId;
   const workflowStorageKey = `bayblaze-driver-workflow:${profile.uid}:${workflowOrderKey}`;
   const savedWorkflow = readSavedWorkflow(workflowStorageKey);
   const [step, setStep] = useState<WorkflowStep>(
@@ -116,7 +116,7 @@ export function DeliveryWorkflowScreen({
     try {
       if (type) {
         await logDeliveryAttempt({
-          orderId: order.medusaOrderId || order.orderId,
+          orderId: order.orderId,
           type,
         });
       }
@@ -147,7 +147,7 @@ export function DeliveryWorkflowScreen({
 
     try {
       await logDeliveryAttempt({
-        orderId: order.medusaOrderId || order.orderId,
+        orderId: order.orderId,
         type: "cancelled",
         note: cancelReason,
       });
@@ -171,7 +171,7 @@ export function DeliveryWorkflowScreen({
 
     try {
       await uploadDeliveryAttemptPhoto({
-        orderId: order.medusaOrderId || order.orderId,
+        orderId: order.orderId,
         type: photoStep === "id-photo" ? "id_photo" : "merchant_invoice_photo",
         photoFile: photoAttempt,
       });

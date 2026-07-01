@@ -68,8 +68,6 @@ export type DriverDeliveryItem = {
 
 export type DriverDeliveryStop = {
   orderId: string;
-  medusaOrderId?: string;
-  orderReference?: string;
   customerPhone?: string;
   customerName: string;
   customerAddress: string;

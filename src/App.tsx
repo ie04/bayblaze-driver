@@ -190,11 +190,7 @@ function App() {
         }
 
         const refreshedDelivery = nextStops.find((stop) =>
-          stop.orderId === currentDelivery.orderId ||
-          (stop.medusaOrderId &&
-            stop.medusaOrderId === currentDelivery.medusaOrderId) ||
-          (stop.orderReference &&
-            stop.orderReference === currentDelivery.orderReference),
+          stop.orderId === currentDelivery.orderId,
         );
 
         return refreshedDelivery ?? null;

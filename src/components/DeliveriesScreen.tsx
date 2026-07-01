@@ -100,7 +100,7 @@ export function DeliveriesScreen({
           icon={<Route size={22} aria-hidden="true" />}
           title="No assigned deliveries"
         >
-          Delivery assignments from Medusa and BayBlaze API scoring will appear here.
+          Delivery assignments from BayBlaze API scoring will appear here.
         </EmptyState>
       ) : (
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">

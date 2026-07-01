@@ -153,10 +153,15 @@ updates.
   inventory state.
 - The driver app must not call paid Google Maps APIs directly from browser code
   and must never expose server-side Google Maps API keys.
-- Driver delivery UI should consume Medusa/order references and routing/ETA
-  snapshots or interpolation-friendly data through `bayblaze-api` boundaries.
+- Driver delivery UI should consume BayBlaze delivery IDs, customer-safe order
+  summaries, and routing/ETA snapshots through `bayblaze-api` boundaries.
 - Keep delivery intelligence, coordinates, route cache behavior, and Google
   Maps cost controls out of React page components.
+- Driver React code must treat `bayblaze-api` as the only delivery workflow
+  backend. Do not expose or consume Medusa/internal commerce identifiers such as
+  `medusaOrderId` or `orderReference` in driver PWA types, components,
+  workflow logging, or route-card actions; the API should translate `orderId`
+  into any internal implementation identifiers server-side.
 - BayBlaze account roles and account settings, including
   `settings.ageVerificationDisabled`, are owned by `bayblaze-api` account
   records in `accounts/{uid}`. Driver browser code should treat these as

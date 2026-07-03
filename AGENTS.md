@@ -29,10 +29,11 @@ Core stack:
   token issuance, profile/onboarding, profile and delivery-attempt photo
   uploads, vehicle links, clock-in/out state, live location snapshots, queue
   state, delivery attempts, and notification-token registration.
-- Firestore, Firebase Auth, Firebase Storage, Resend, Medusa, routing/scoring,
-  and any privileged backend credentials sit behind `bayblaze-api`. The browser
-  app must not import Firebase SDKs, Firestore collection names, Firebase
-  Storage APIs, Firebase Functions callers, or backend service tokens.
+- Firestore, Firebase Auth, Firebase Storage, Resend, commerce/order runtime,
+  routing/scoring, and any privileged backend credentials sit behind
+  `bayblaze-api`. The browser app must not import Firebase SDKs, Firestore
+  collection names, Firebase Storage APIs, Firebase Functions callers, direct
+  commerce APIs, or backend service tokens.
 
 ## Security And Auth Model
 
@@ -141,9 +142,11 @@ updates.
 - `bayblaze-admin` is the operator dashboard for account roles/settings,
   live drivers, driver routes, isochrone plots, and live order details. It lives
   at `admin.bayblaze.net` and must call `bayblaze-api` only.
-- Embedded Medusa under `bayblaze-api/medusa` remains the source of truth for
-  products, variants, orders, fulfillment, payment state, and inventory. The old
-  standalone `bayblaze-medusa` repo is retired.
+- The commerce/order implementation is internal to `bayblaze-api`. Driver UI
+  must treat products, variants, orders, fulfillment, payment state, inventory,
+  labels, invoices, and delivery status as BayBlaze API concepts; the old
+  standalone `bayblaze-medusa` repo is retired and must not be used by the
+  driver dashboard.
 - IsoChronos-derived geocoding, routing, delivery ETA, address autocomplete,
   geographic partitioning, and Google Maps usage guardrails are internal
   `bayblaze-api` modules for app-facing workflows.
@@ -167,12 +170,11 @@ updates.
   records in `accounts/{uid}`. Driver browser code should treat these as
   session/account metadata from the API, not as Firestore state.
 - Temporary solo-driver dispatch fallback: `syncDriverDeliveryQueue` in
-  `bayblaze-api` checks Firestore for active, onboarded, clocked-in drivers with
-  linked vehicles. If exactly one exists and it is the requesting UID, the API
-  calls the Medusa driver queue route with `include_unassigned=true` so currently
-  unassigned open orders appear for that driver. With multiple active drivers,
-  only explicitly assigned Medusa orders are returned until a dedicated
-  dispatch/partitioning service assigns unassigned orders.
+  `bayblaze-api` checks for active, onboarded, clocked-in drivers with linked
+  vehicles. If exactly one exists and it is the requesting UID, the API may
+  include currently unassigned open orders for that driver. With multiple active
+  drivers, only explicitly assigned BayBlaze delivery stops are returned until a
+  dedicated dispatch/partitioning service assigns unassigned orders.
 
 ## Deployment Assumptions
 
@@ -195,18 +197,14 @@ updates.
   The production URI must also be present in the Google Cloud OAuth web
   client's Authorized redirect URIs; otherwise Google returns
   `redirect_uri_mismatch` even when `bayblaze-api` allows the callback.
-- Server-only driver auth, Resend, Firebase Admin, Medusa, and routing
-  integration variables belong in `bayblaze-api`. Direct Medusa variables remain
-  supported there as legacy fallbacks:
-  `MEDUSA_BACKEND_URL`, `MEDUSA_ADMIN_API_TOKEN`, `MEDUSA_DRIVER_QUEUE_PATH`,
-  and `MEDUSA_DELIVERY_ATTEMPT_PATH`. Never expose these through `VITE_`
-  frontend variables.
-- Legacy production backend service URL:
-  `MEDUSA_BACKEND_URL=https://api.bayblaze.net`.
+- Server-only driver auth, Resend, Firebase Admin, commerce/order runtime, and
+  routing integration variables belong in `bayblaze-api`. Never expose these
+  through `VITE_` frontend variables.
 - Hetzner VPS SSH from this workstation:
   `ssh -i ~/.ssh/codex_vps_ed25519 codex-deploy@178.156.179.156`.
-- The active Medusa checkout and compose project are under `/opt/bayblaze/medusa`,
-  owned by `github-runner`.
+- The production runtime is the consolidated `bayblaze-api` deployment under
+  `/opt/bayblaze/bayblaze-api`; the driver app should not target or document a
+  separate commerce service.
 
 ## Local Commands
 

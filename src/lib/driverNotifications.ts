@@ -39,12 +39,25 @@ export async function registerDriverPushNotifications({
   }
 
   const registration = await navigator.serviceWorker.ready;
-  const subscription =
-    (await registration.pushManager.getSubscription()) ??
-    (await registration.pushManager.subscribe({
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      userVisibleOnly: true,
-    }));
+  const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+  let subscription = await registration.pushManager.getSubscription();
+
+  if (
+    subscription &&
+    !subscriptionUsesApplicationServerKey(subscription, applicationServerKey)
+  ) {
+    const staleTokenId = await getSubscriptionId(subscription);
+    await driverApiDelete(
+      `/v1/driver/me/notification-tokens/${encodeURIComponent(staleTokenId)}`,
+    ).catch(() => undefined);
+    await subscription.unsubscribe();
+    subscription = null;
+  }
+
+  subscription ??= await registration.pushManager.subscribe({
+    applicationServerKey,
+    userVisibleOnly: true,
+  });
   const tokenId = await getSubscriptionId(subscription);
 
   await driverApiPost("/v1/driver/me/notification-tokens", {
@@ -98,6 +111,27 @@ function urlBase64ToUint8Array(value: string) {
   }
 
   return outputArray;
+}
+
+function subscriptionUsesApplicationServerKey(
+  subscription: PushSubscription,
+  expectedKey: Uint8Array,
+) {
+  const currentKey = subscription.options.applicationServerKey;
+
+  if (!currentKey) {
+    return true;
+  }
+
+  return byteArraysMatch(new Uint8Array(currentKey), expectedKey);
+}
+
+function byteArraysMatch(first: Uint8Array, second: Uint8Array) {
+  if (first.byteLength !== second.byteLength) {
+    return false;
+  }
+
+  return first.every((value, index) => value === second[index]);
 }
 
 async function getSubscriptionId(subscription: PushSubscription) {

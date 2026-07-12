@@ -6,8 +6,23 @@ export type DriverSession = {
 
 const apiBaseUrl = (import.meta.env.VITE_BAYBLAZE_API_URL as string | undefined)?.replace(/\/$/, "");
 const sessionStorageKey = "bayblaze-driver-session";
+const requestTimeoutMs = 15_000;
 
 let currentSession = readStoredSession();
+
+export class DriverApiError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "DriverApiError";
+    this.status = status;
+  }
+}
+
+export function isDriverApiAuthError(error: unknown) {
+  return error instanceof DriverApiError && (error.status === 401 || error.status === 403);
+}
 
 export function getDriverSession() {
   return currentSession;
@@ -84,7 +99,7 @@ async function apiRequest<T>(
   },
 ) {
   if (!apiBaseUrl) {
-    throw new Error("BayBlaze API URL is not configured.");
+    throw new DriverApiError("BayBlaze API URL is not configured.");
   }
 
   const headers: Record<string, string> = {};
@@ -107,19 +122,42 @@ async function apiRequest<T>(
     headers.authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(new URL(path, apiBaseUrl), {
-    body,
-    headers,
-    method: options.method ?? "GET",
-  });
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : {};
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+  let response: Response;
+  let text: string;
+
+  try {
+    response = await fetch(new URL(path, apiBaseUrl), {
+      body,
+      headers,
+      method: options.method ?? "GET",
+      signal: controller.signal,
+    });
+    text = await response.text();
+  } catch (caught) {
+    if (caught instanceof DOMException && caught.name === "AbortError") {
+      throw new DriverApiError("BayBlaze API did not respond. Check your connection and try again.");
+    }
+
+    throw caught;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = text ? JSON.parse(text) as Record<string, unknown> : {};
+  } catch {
+    payload = {};
+  }
 
   if (!response.ok) {
-    throw new Error(
+    throw new DriverApiError(
       typeof payload.message === "string"
         ? payload.message
         : `BayBlaze API request failed with HTTP ${response.status}.`,
+      response.status,
     );
   }
 

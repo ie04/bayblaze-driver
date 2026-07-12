@@ -20,11 +20,12 @@ const subscriptionPollMs = 5_000;
 export function subscribeDriverProfile(
   _uid: string,
   onChange: (profile: DriverProfile | null) => void,
+  onError?: (error: unknown) => void,
 ) {
   return pollDriverResource(async () => {
     const payload = await driverApiGet<{ profile: DriverProfile | null }>("/v1/driver/me/profile");
     onChange(payload.profile);
-  });
+  }, onError);
 }
 
 export function subscribeDriverDeliveryQueue(
@@ -205,7 +206,7 @@ export function formatVehicle(vehicle: VehicleRecord) {
   return parts.length > 0 ? parts.join(" ") : "Vehicle";
 }
 
-function pollDriverResource(load: () => Promise<void>) {
+function pollDriverResource(load: () => Promise<void>, onError?: (error: unknown) => void) {
   let cancelled = false;
 
   async function tick() {
@@ -213,6 +214,7 @@ function pollDriverResource(load: () => Promise<void>) {
       await load();
     } catch (caught) {
       console.warn("Driver API polling failed.", caught);
+      onError?.(caught);
     }
   }
 

@@ -16,6 +16,7 @@ import { VehicleLink } from "./components/VehicleLink";
 import {
   AppShell,
   BottomNav,
+  Button,
   ErrorState,
   LoadingState,
 } from "./components/ui";
@@ -24,7 +25,12 @@ import {
   type DriverPushRegistrationResult,
   unregisterDriverPushNotifications,
 } from "./lib/driverNotifications";
-import { clearDriverSession, getDriverSession, type DriverSession } from "./lib/driverApi";
+import {
+  clearDriverSession,
+  getDriverSession,
+  isDriverApiAuthError,
+  type DriverSession,
+} from "./lib/driverApi";
 import {
   subscribeDriverDeliveryQueue,
   subscribeDriverProfile,
@@ -49,6 +55,8 @@ type DeliverySyncOptions = {
 function App() {
   const [authUser, setAuthUser] = useState<DriverSession | null>(() => getDriverSession());
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
+  const [profileLoadError, setProfileLoadError] = useState("");
+  const [profileLoadRetryKey, setProfileLoadRetryKey] = useState(0);
   const [deliveryQueue, setDeliveryQueue] = useState<DriverDeliveryQueue | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState<DriverDeliveryStop | null>(null);
   const [orderToast, setOrderToast] = useState<{
@@ -70,6 +78,7 @@ function App() {
   const deliveryQueueRef = useRef<DriverDeliveryQueue | null>(null);
   const deliverySyncInFlight = useRef(false);
   const lastDeliverySyncAt = useRef(0);
+  const profileRef = useRef<DriverProfile | null | undefined>(profile);
   const pendingDeliveryOrderId = useRef(
     new URLSearchParams(window.location.search).get("orderId") ?? "",
   );
@@ -142,14 +151,35 @@ function App() {
   }, []);
 
   useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
+  useEffect(() => {
     if (!authUser) {
       return;
     }
 
     return subscribeDriverProfile(authUser.uid, (nextProfile) => {
+      setProfileLoadError("");
       setProfile(nextProfile);
+    }, (caught) => {
+      if (isDriverApiAuthError(caught)) {
+        clearDriverSession();
+        setProfile(null);
+        setProfileLoadError("");
+        setAuthUser(null);
+        return;
+      }
+
+      const message = caught instanceof Error
+        ? caught.message
+        : "Driver access could not be loaded.";
+
+      if (profileRef.current === undefined) {
+        setProfileLoadError(message);
+      }
     });
-  }, [authUser]);
+  }, [authUser, profileLoadRetryKey]);
 
   useEffect(() => {
     if (!authUser) {
@@ -358,9 +388,41 @@ function App() {
       <AuthPanel
         onAuthenticated={(session) => {
           setProfile(undefined);
+          setProfileLoadError("");
           setAuthUser(session);
         }}
       />
+    );
+  } else if (authUser && profile === undefined && profileLoadError) {
+    screenKey = "profile-load-error";
+    screen = (
+      <div className="flex flex-1 flex-col justify-center gap-4 px-5 py-10">
+        <ErrorState>{profileLoadError}</ErrorState>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button
+            onClick={() => {
+              setProfileLoadError("");
+              setProfile(undefined);
+              setProfileLoadRetryKey((key) => key + 1);
+            }}
+            type="button"
+          >
+            Try Again
+          </Button>
+          <Button
+            onClick={() => {
+              clearDriverSession();
+              setProfile(null);
+              setProfileLoadError("");
+              setAuthUser(null);
+            }}
+            type="button"
+            variant="secondary"
+          >
+            Sign In Again
+          </Button>
+        </div>
+      </div>
     );
   } else if (authUser && profile === undefined) {
     screenKey = "loading-profile";

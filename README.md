@@ -1,62 +1,31 @@
 # BayBlaze Driver
 
-Mobile-first React PWA for BayBlaze delivery drivers.
+BayBlaze Driver is a mobile-first PWA for delivery drivers handling BayBlaze
+local delivery routes. It focuses on quick phone workflows for driver sign-in,
+profile setup, vehicle linking, clock state, route queues, delivery execution,
+proof-of-delivery uploads, and assignment notifications.
 
-## Stack
+## Highlights
 
-- React, TypeScript, Vite, Tailwind CSS.
-- `bayblaze-api` for auth, driver workflow state, uploads, delivery queues,
-  delivery-attempt logs, notification registration, and secure email/push
-  delivery.
+- React, TypeScript, Vite, Tailwind CSS, and PWA support.
+- Universal BayBlaze account sign-in for driver access.
+- Driver onboarding and profile setup.
+- Vehicle linking, clock-in/clock-out, and live location update workflows.
+- Delivery queue and current-stop UI.
+- Delivery attempt logging, photo capture, invoice/label reprint requests, and
+  push notification registration through BayBlaze API.
 
-## Local Setup
+## Local Development
 
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
+npm run build
+npm run lint
 ```
 
-Required frontend variables:
+## Repository Notes
 
-```env
-VITE_BAYBLAZE_API_URL=http://localhost:3040
-VITE_BAYBLAZE_WEB_PUSH_PUBLIC_KEY=
-```
-
-Closed-app driver assignment push notifications use standard Web Push. The
-private VAPID key and Resend sender credentials live only in `bayblaze-api`;
-the browser app stores a push subscription through
-`POST /v1/driver/me/notification-tokens`.
-
-## Driver Access Flow
-
-1. Driver enters email.
-2. App calls `bayblaze-api`, which checks `driver_allowlist/{emailKey}`.
-3. Existing drivers sign in through the universal BayBlaze account routes.
-4. New allowlisted drivers receive a Resend code from `bayblaze-api`.
-5. The API validates the code, creates the account, and returns a driver
-   session.
-7. The app guides the driver through profile photo/profile setup, vehicle link,
-   clock-in, and the active dashboard.
-
-Passwords are handled only by the secure backend auth boundary and are never
-stored in Firestore.
-
-## BayBlaze UI Primitives
-
-Reusable React + Tailwind primitives live in `src/components/ui`. New driver UI
-should import shared pieces such as `Button`, `Card`, `Badge`, `Input`,
-`Textarea`, `AppShell`, `BottomNav`, `EmptyState`, `LoadingState`, `ErrorState`,
-`MetricCard`, `OrderCard`, and `ActionBar` from that module instead of repeating
-raw Tailwind class stacks.
-
-Brand tokens are centralized in `src/index.css` as `--bb-*` CSS variables and
-Tailwind v4 `@theme` entries. Future BayBlaze apps can lift this UI folder plus
-the token block as the starting point for a shared package.
-
-The driver app shell, auth/profile forms, vehicle selection, active shift,
-live-location card, delivery route, and delivery workflow now use these
-primitives. When adding a primitive, keep the default BayBlaze shape, focus
-state, tap target, tone names, and token usage inside `src/components/ui`, then
-allow screen-specific layout through `className` only where needed.
+The driver browser app treats BayBlaze API as the secure workflow backend. It
+does not include production service credentials, Firebase Admin keys, email
+provider keys, routing secrets, or direct commerce tokens.

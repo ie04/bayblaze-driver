@@ -11,6 +11,7 @@ import { DeliveriesScreen } from "./components/DeliveriesScreen";
 import { DeliveryWorkflowScreen } from "./components/DeliveryWorkflowScreen";
 import { DriverDashboard } from "./components/DriverDashboard";
 import { DriverProfileScreen } from "./components/DriverProfileScreen";
+import { PartnerAccountPage } from "./components/PartnerAccountPage";
 import { ProfileSetup } from "./components/ProfileSetup";
 import { VehicleLink } from "./components/VehicleLink";
 import {
@@ -41,6 +42,7 @@ import {
   getOrderAssignmentTitle,
   showOrderAssignmentNotification,
 } from "./lib/orderAlerts";
+import { isPartnerGoogleCallback } from "./lib/accountAccess";
 import type { DriverDeliveryQueue, DriverDeliveryStop, DriverProfile } from "./lib/types";
 
 const ORDER_TOAST_DURATION_MS = 9_000;
@@ -53,6 +55,10 @@ type DeliverySyncOptions = {
 };
 
 function App() {
+  const isPartnersPage =
+    window.location.pathname === "/partners" ||
+    window.location.pathname.startsWith("/partners/") ||
+    isPartnerGoogleCallback();
   const [authUser, setAuthUser] = useState<DriverSession | null>(() => getDriverSession());
   const [profile, setProfile] = useState<DriverProfile | null | undefined>(undefined);
   const [profileLoadError, setProfileLoadError] = useState("");
@@ -369,6 +375,10 @@ function App() {
     } finally {
       setEnablingNotifications(false);
     }
+  }
+
+  if (isPartnersPage) {
+    return <PartnerAccountPage />;
   }
 
   const isLoginScreen = !authLoading && !authUser;

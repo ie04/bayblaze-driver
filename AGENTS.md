@@ -200,8 +200,8 @@ updates.
 - Server-only driver auth, Resend, Firebase Admin, commerce/order runtime, and
   routing integration variables belong in `bayblaze-api`. Never expose these
   through `VITE_` frontend variables.
-- Hetzner VPS SSH from this workstation:
-  `ssh -i ~/.ssh/codex_vps_ed25519 codex-deploy@178.156.179.156`.
+- OVHcloud VPS SSH from this workstation:
+  `ssh -i ~/.ssh/codex_vps_ed25519 ubuntu@40.160.239.20`.
 - The production runtime is the consolidated `bayblaze-api` deployment under
   `/opt/bayblaze/bayblaze-api`; the driver app should not target or document a
   separate commerce service.

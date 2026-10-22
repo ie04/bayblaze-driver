@@ -2,11 +2,9 @@ import { publicApiPost, type DriverSession } from "./driverApi";
 import { normalizeEmail } from "./email";
 
 type AccountRole = "admin" | "driver" | "inventory";
-type AccountBadge = "customer" | "employee";
 
 type AccountAuthResponse = {
   account: {
-    badges: AccountBadge[];
     roles: AccountRole[];
   };
   commerce?: unknown;

@@ -76,7 +76,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
           Driver Sign In
         </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--bb-muted)]">
-          Use a BayBlaze employee account with the driver role.
+          Use a BayBlaze account with the driver role.
         </p>
       </div>
 

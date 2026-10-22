@@ -2,11 +2,10 @@ import { publicApiPost, setDriverSession, type DriverSession } from "./driverApi
 import { normalizeEmail } from "./email";
 
 type AccountRole = "admin" | "driver" | "inventory";
-type AccountBadge = "customer" | "employee";
 
 type AccountAuthResponse = {
   account: {
-    badges: AccountBadge[];
+    disabled: boolean;
     roles: AccountRole[];
   };
   session: DriverSession;
@@ -54,7 +53,7 @@ export async function completeDriverGoogleLogin(searchParams: URLSearchParams) {
 }
 
 function assertDriverAccount(account: AccountAuthResponse["account"]) {
-  if (!account.badges.includes("employee") || !account.roles.includes("driver")) {
+  if (account.disabled || !account.roles.includes("driver")) {
     throw new Error("This BayBlaze account does not have driver access.");
   }
 }

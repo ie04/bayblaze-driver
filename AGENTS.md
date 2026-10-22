@@ -54,7 +54,7 @@ Core stack:
   `POST /v1/auth/login`, `POST /v1/auth/google/start`, and
   `POST /v1/auth/google/callback`. The app stores the returned universal
   account session as its driver bearer token only after verifying the account
-  has the `employee` badge plus the `driver` role.
+  has the `driver` role on an enabled account.
 - New allowlisted drivers verify an emailed code through the backend, create a
   password that satisfies BayBlaze requirements, and have their account created
   by `bayblaze-api`.
@@ -285,3 +285,14 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - Existing vehicle IDs, including V01, remain unchanged. Clock-out releases the
   vehicle for another driver and clears vehicle selection; stock stays assigned
   to the physical vehicle until Inventory moves it through the API.
+
+## October 2026 Role-Only Account Authorization
+
+- Every enabled universal account can use customer features. Staff privileges
+  are explicit `roles: ["admin", "driver", "inventory"]` subsets; ordinary
+  customers have `roles: []`. `disabled` remains the account-wide access gate.
+- Authorization badges (`customer` / `employee`) are retired. Do not read,
+  write, display, or require them. Removing staff roles leaves customer access.
+- API middleware re-reads account permissions on requests, so revoking a role
+  does not depend on an old session expiring. Existing signed sessions remain
+  compatible; new sessions and account responses omit badges.

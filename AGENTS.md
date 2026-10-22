@@ -273,3 +273,15 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - Redeploy after Vercel environment changes. Service-token synchronization and
   browser session recovery are separate concerns; old account sessions may
   require a fresh sign-in after the backend signing secret changes.
+
+## Shared Vehicle Registry
+
+- Vehicles are administered in BayBlaze Admin through `bayblaze-api` and stored
+  in the API's unified `bayblaze-isochronos` Firestore registry. The retired
+  `bayblaze-driver` Firestore project is not read by the PWA or inventory proxy.
+- Driver vehicle selection still uses `/v1/driver/me/vehicles/available` and
+  `/v1/driver/me/vehicles/link`. Only active unlinked vehicles are offered.
+  Linking and clock-in enforce ownership and profile state transactionally.
+- Existing vehicle IDs, including V01, remain unchanged. Clock-out releases the
+  vehicle for another driver and clears vehicle selection; stock stays assigned
+  to the physical vehicle until Inventory moves it through the API.

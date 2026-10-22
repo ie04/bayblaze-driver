@@ -47,7 +47,7 @@ Core stack:
 - The allowlist gates signup/onboarding. If an email is not active in
   `driver_allowlist`, the app should deny access with clear driver-facing copy.
 - Existing Auth users sign in by calling `bayblaze-api`, which validates
-  email/password server-side, ensures an `accounts/{uid}` record with the
+  email/password server-side, requires an enabled `accounts/{uid}` record with the
   `driver` role, and returns a BayBlaze account session token that is accepted
   by driver workflow routes.
 - The driver PWA sign-in screen uses the universal BayBlaze account routes:
@@ -296,3 +296,5 @@ empty/loading/error, metric, order-card, or bottom-nav class stacks.
 - API middleware re-reads account permissions on requests, so revoking a role
   does not depend on an old session expiring. Existing signed sessions remain
   compatible; new sessions and account responses omit badges.
+- Driver allowlisting grants the role at approved account creation only. Legacy
+  driver login must not restore a role revoked in Admin.
